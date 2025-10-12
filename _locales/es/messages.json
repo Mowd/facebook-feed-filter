@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Filtro de Feed de Facebook - Eliminar Recomendaciones",
+    "description": "Nombre de la extensión"
+  },
+  "extensionDescription": {
+    "message": "Elimina publicaciones patrocinadas, contenido sugerido y Reels de Facebook, mostrando solo publicaciones de amigos.",
+    "description": "Descripción de la extensión"
+  },
+  "filterMessage": {
+    "message": "Contenido filtrado",
+    "description": "Mensaje mostrado al filtrar"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Facebook Feed Filter - Remove Recommendations",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "Remove sponsored posts, suggested content and Reels from Facebook feed. Keep only friends' posts.",
+    "description": "Extension description"
+  },
+  "filterMessage": {
+    "message": "Content filtered",
+    "description": "Message shown when content is filtered"
+  }
+}

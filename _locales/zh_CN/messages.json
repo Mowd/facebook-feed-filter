@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Facebook 动态过滤器 - 移除推荐内容",
+    "description": "扩展名称"
+  },
+  "extensionDescription": {
+    "message": "移除 Facebook 上的赞助帖子、推荐内容和 Reels，只保留朋友的帖子。",
+    "description": "扩展描述"
+  },
+  "filterMessage": {
+    "message": "内容已过滤",
+    "description": "过滤内容时显示的消息"
+  }
+}

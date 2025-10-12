@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Facebook 動態過濾器 - 移除推薦內容",
+    "description": "擴充功能名稱"
+  },
+  "extensionDescription": {
+    "message": "移除 Facebook 上的贊助貼文、推薦內容和 Reels，只保留朋友的貼文。",
+    "description": "擴充功能描述"
+  },
+  "filterMessage": {
+    "message": "內容已過濾",
+    "description": "過濾內容時顯示的訊息"
+  }
+}

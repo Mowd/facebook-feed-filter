@@ -1,0 +1,97 @@
+/**
+ * Facebook 推薦內容移除器樣式
+ */
+
+.fb-filter-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  margin: 16px 0;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+  border: 2px solid #cbd5e0;
+  border-radius: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  color: #4a5568;
+  transition: all 0.3s ease;
+  gap: 10px;
+}
+
+.fb-filter-notice:hover {
+  background: linear-gradient(135deg, #e4e8ec 0%, #d5dae0 100%);
+  border-color: #a0aec0;
+}
+
+.fb-filter-icon {
+  font-size: 24px;
+  line-height: 1;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.fb-filter-text {
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.fb-filter-count {
+  font-size: 13px;
+  color: #718096;
+  margin-left: 8px;
+}
+
+/* 淡入動畫 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 針對不同類型的過濾器使用不同顏色 */
+.fb-filter-notice[data-filter-type="follow"] {
+  background: linear-gradient(135deg, #fef5e7 0%, #fdebd0 100%);
+  border-color: #f39c12;
+}
+
+.fb-filter-notice[data-filter-type="follow"]:hover {
+  background: linear-gradient(135deg, #fdebd0 0%, #fce3b6 100%);
+}
+
+.fb-filter-notice[data-filter-type="join"] {
+  background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
+  border-color: #38a169;
+}
+
+.fb-filter-notice[data-filter-type="join"]:hover {
+  background: linear-gradient(135deg, #c6f6d5 0%, #9ae6b4 100%);
+}
+
+.fb-filter-notice[data-filter-type="reels"] {
+  background: linear-gradient(135deg, #ebf8ff 0%, #d4edff 100%);
+  border-color: #3182ce;
+}
+
+.fb-filter-notice[data-filter-type="reels"]:hover {
+  background: linear-gradient(135deg, #d4edff 0%, #bee3ff 100%);
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .fb-filter-notice {
+    padding: 16px;
+    font-size: 14px;
+  }
+
+  .fb-filter-icon {
+    font-size: 20px;
+  }
+
+  .fb-filter-count {
+    font-size: 12px;
+  }
+}

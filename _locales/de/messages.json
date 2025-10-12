@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Facebook Feed Filter - Empfehlungen entfernen",
+    "description": "Erweiterungsname"
+  },
+  "extensionDescription": {
+    "message": "Entfernt gesponserte Beiträge, vorgeschlagene Inhalte und Reels von Facebook, zeigt nur Beiträge von Freunden.",
+    "description": "Erweiterungsbeschreibung"
+  },
+  "filterMessage": {
+    "message": "Inhalt gefiltert",
+    "description": "Nachricht beim Filtern"
+  }
+}

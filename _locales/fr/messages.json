@@ -1,0 +1,14 @@
+{
+  "extensionName": {
+    "message": "Filtre de flux Facebook - Supprimer les recommandations",
+    "description": "Nom de l'extension"
+  },
+  "extensionDescription": {
+    "message": "Supprimez les publications sponsorisées, le contenu suggéré et les Reels de Facebook, ne gardez que les publications de vos amis.",
+    "description": "Description de l'extension"
+  },
+  "filterMessage": {
+    "message": "Contenu filtré",
+    "description": "Message affiché lors du filtrage"
+  }
+}
