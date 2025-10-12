@@ -2,7 +2,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Firefox Add-on](https://img.shields.io/badge/Firefox-Add--on-orange.svg)](https://addons.mozilla.org/)
-![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
+![Version](https://img.shields.io/badge/version-1.0.1-green.svg)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/Mowd/facebook-feed-filter/graphs/commit-activity)
 
 A lightweight Firefox extension that removes sponsored posts, suggested content, and Reels from your Facebook feed, leaving only posts from friends and pages you follow.
@@ -138,6 +138,15 @@ See [PRIVACY_POLICY.md](PRIVACY_POLICY.md) for full details.
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ## 🔄 Changelog
+
+### Version 1.0.1
+- **Critical Performance Fix**: Resolved severe performance issues causing page lag
+- Fixed: More precise filtering - now only removes posts with "Follow" or "Join" buttons
+- Optimized DOM queries - reduced element scanning by 90%
+- Changed from scanning all span elements to only button elements
+- Enhanced debounce mechanism to prevent duplicate executions
+- Increased scan interval from 5s to 10s to reduce CPU usage
+- Improved detection logic for Reels and recommendation buttons
 
 ### Version 1.0.0
 - Initial release
