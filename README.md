@@ -147,6 +147,10 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 - Uses requestAnimationFrame for optimal rendering timing
 - Increased debounce time to 1000ms for better performance
 - Fixed "screen tearing" issue when removing multiple posts simultaneously
+- **New Feature**: Shows simple placeholder text where posts were removed
+- Placeholder text supports all 8 languages with appropriate translations
+- Minimal design - just gray text without borders or backgrounds
+- Different messages for recommendations, Reels, and sponsored content
 
 ### Version 1.0.1
 - **Critical Performance Fix**: Resolved severe performance issues causing page lag
