@@ -34,7 +34,13 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       sponsored: ['贊助'],
       reels: ['Reels', '連續短片'],
       // 排除這些詞彙（表示已經在追蹤或已加入的內容）
-      exclude: ['追蹤中', '已加入', '已追蹤']
+      exclude: ['追蹤中', '已加入', '已追蹤'],
+      // 移除後的提示文字
+      removedText: {
+        button: '已移除推薦內容',
+        reels: '已移除 Reels',
+        sponsored: '已移除贊助內容'
+      }
     },
     'zh-CN': {
       follow: ['追踪', '关注'],
@@ -42,7 +48,12 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       suggested: ['推荐', '建议'],
       sponsored: ['赞助'],
       reels: ['Reels', '连续短片'],
-      exclude: ['追踪中', '关注中', '已加入', '已关注']
+      exclude: ['追踪中', '关注中', '已加入', '已关注'],
+      removedText: {
+        button: '已移除推荐内容',
+        reels: '已移除 Reels',
+        sponsored: '已移除赞助内容'
+      }
     },
     'en': {
       follow: ['Follow'],
@@ -50,7 +61,12 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       suggested: ['Suggested', 'Suggested for you'],
       sponsored: ['Sponsored'],
       reels: ['Reels'],
-      exclude: ['Following', 'Followed', 'Joined']
+      exclude: ['Following', 'Followed', 'Joined'],
+      removedText: {
+        button: 'Removed recommendation',
+        reels: 'Removed Reels',
+        sponsored: 'Removed sponsored content'
+      }
     },
     'ja': {
       follow: ['フォロー', 'フォローする'],
@@ -58,7 +74,12 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       suggested: ['おすすめ', 'あなたへのおすすめ'],
       sponsored: ['スポンサー', '広告'],
       reels: ['リール', 'Reels'],
-      exclude: ['フォロー中', '参加済み', 'フォロー済み']
+      exclude: ['フォロー中', '参加済み', 'フォロー済み'],
+      removedText: {
+        button: 'おすすめを削除しました',
+        reels: 'リールを削除しました',
+        sponsored: 'スポンサーコンテンツを削除しました'
+      }
     },
     'ko': {
       follow: ['팔로우', '팔로우하기'],
@@ -66,7 +87,12 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       suggested: ['추천', '회원님을 위한 추천'],
       sponsored: ['스폰서', '광고'],
       reels: ['릴스', 'Reels'],
-      exclude: ['팔로잉', '가입함', '팔로우 중']
+      exclude: ['팔로잉', '가입함', '팔로우 중'],
+      removedText: {
+        button: '추천 콘텐츠 제거됨',
+        reels: '릴스 제거됨',
+        sponsored: '스폰서 콘텐츠 제거됨'
+      }
     },
     'fr': {
       follow: ['Suivre', "S'abonner"],
@@ -74,7 +100,12 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       suggested: ['Suggéré', 'Suggéré pour vous'],
       sponsored: ['Sponsorisé'],
       reels: ['Reels'],
-      exclude: ['Abonné', 'Déjà abonné', 'Suivi']
+      exclude: ['Abonné', 'Déjà abonné', 'Suivi'],
+      removedText: {
+        button: 'Recommandation supprimée',
+        reels: 'Reels supprimé',
+        sponsored: 'Contenu sponsorisé supprimé'
+      }
     },
     'de': {
       follow: ['Folgen', 'Abonnieren'],
@@ -82,7 +113,12 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       suggested: ['Vorgeschlagen', 'Vorschläge für dich'],
       sponsored: ['Gesponsert'],
       reels: ['Reels'],
-      exclude: ['Abonniert', 'Folge ich', 'Beigetreten']
+      exclude: ['Abonniert', 'Folge ich', 'Beigetreten'],
+      removedText: {
+        button: 'Empfehlung entfernt',
+        reels: 'Reels entfernt',
+        sponsored: 'Gesponserte Inhalte entfernt'
+      }
     },
     'es': {
       follow: ['Seguir'],
@@ -90,7 +126,12 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       suggested: ['Sugerido', 'Sugerencias para ti'],
       sponsored: ['Patrocinado', 'Publicidad'],
       reels: ['Reels'],
-      exclude: ['Siguiendo', 'Seguido', 'Unido']
+      exclude: ['Siguiendo', 'Seguido', 'Unido'],
+      removedText: {
+        button: 'Recomendación eliminada',
+        reels: 'Reels eliminado',
+        sponsored: 'Contenido patrocinado eliminado'
+      }
     }
   };
 
@@ -179,11 +220,27 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
 
       // 延遲 100ms 後再移除 DOM
       setTimeout(() => {
+        const keywords = getFilterKeywords();
+
         batch.forEach(item => {
           if (item.element && item.element.parentElement) {
+            // 創建 placeholder 並顯示提示文字
             const placeholder = document.createElement('div');
-            placeholder.style.display = 'none';
             placeholder.className = 'fb-filter-removed';
+
+            // 設定提示文字
+            const removedText = keywords.removedText?.[item.category] ||
+                               `Removed ${item.category}`;
+            placeholder.textContent = removedText;
+
+            // 設定簡單樣式
+            placeholder.style.cssText = `
+              color: #8a8d91;
+              font-size: 14px;
+              padding: 8px;
+              text-align: center;
+              font-family: system-ui, -apple-system, sans-serif;
+            `;
 
             try {
               item.element.parentElement.replaceChild(placeholder, item.element);
