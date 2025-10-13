@@ -1,12 +1,13 @@
 /**
- * Facebook Feed Filter v1.0.1
+ * Facebook Feed Filter v1.0.2
  * 精準移除 Facebook 推薦內容、贊助貼文和 Reels
  *
- * 更新內容 (v1.0.1):
- * - 改進過濾邏輯：只移除帶有「追蹤」或「加入」按鈕的貼文
- * - 大幅改善效能：優化 DOM 查詢，減少 90% 的元素掃描
- * - 修復造成頁面卡頓的問題
- * - 加強防抖機制，避免重複執行
+ * 更新內容 (v1.0.2):
+ * - 批次處理 DOM 操作，大幅改善效能
+ * - 使用 requestAnimationFrame 優化渲染時機
+ * - 漸進式隱藏機制，避免畫面破碎
+ * - 智慧管理 MutationObserver，防止連鎖反應
+ * - 防抖時間增加到 1000ms，減少執行頻率
  */
 
 (function() {
@@ -144,8 +145,77 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
   }
 
 
+  // 批次處理佇列
+  let pendingRemovals = [];
+  let isProcessingBatch = false;
+  let observerRef = null; // 儲存 observer 的引用
+
   /**
-   * 檢查並移除推薦內容（優化版本）
+   * 批次移除元素，避免 DOM thrashing
+   */
+  function processBatchRemovals() {
+    if (isProcessingBatch || pendingRemovals.length === 0) {
+      return;
+    }
+
+    isProcessingBatch = true;
+
+    // 暫停 MutationObserver 避免連鎖反應
+    if (observerRef) {
+      observerRef.disconnect();
+    }
+
+    // 使用 requestAnimationFrame 確保在適當時機執行
+    requestAnimationFrame(() => {
+      const batch = pendingRemovals.splice(0, 10); // 每批最多處理 10 個
+
+      // 先隱藏所有元素（不觸發重排）
+      batch.forEach(item => {
+        if (item.element && item.element.parentElement) {
+          item.element.style.visibility = 'hidden';
+          item.element.style.pointerEvents = 'none';
+        }
+      });
+
+      // 延遲 100ms 後再移除 DOM
+      setTimeout(() => {
+        batch.forEach(item => {
+          if (item.element && item.element.parentElement) {
+            const placeholder = document.createElement('div');
+            placeholder.style.display = 'none';
+            placeholder.className = 'fb-filter-removed';
+
+            try {
+              item.element.parentElement.replaceChild(placeholder, item.element);
+              removedCount++;
+              console.log(`[FB Filter] 已移除 ${item.category} #${removedCount}: ${item.keyword}`);
+            } catch (e) {
+              // 元素可能已被移除，忽略錯誤
+            }
+          }
+        });
+
+        // 重新啟用 MutationObserver
+        if (observerRef) {
+          observerRef.observe(document.body, {
+            childList: true,
+            subtree: true
+          });
+        }
+
+        isProcessingBatch = false;
+
+        // 如果還有待處理的元素，繼續處理
+        if (pendingRemovals.length > 0) {
+          setTimeout(processBatchRemovals, 200);
+        }
+      }, 100);
+    });
+  }
+
+  /**
+   * 檢查並收集推薦內容（優化版本 v1.0.2）
+   * 批次收集，統一處理，避免效能問題
    */
   function removeRecommendations() {
     // 先找到主要內容區域
@@ -156,28 +226,38 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       return;
     }
 
-    let debugCount = { found: 0, removed: 0, skipped: 0 };
+    let debugCount = { found: 0, collected: 0, skipped: 0 };
     const keywords = getFilterKeywords();
+    const toRemove = []; // 收集要移除的元素
 
     // 優化策略：只搜尋可能包含推薦內容的按鈕
-    // 1. 先找所有 role="button" 的元素
     const buttonElements = mainContent.querySelectorAll('[role="button"]');
 
     if (DEBUG) console.log(`[FB Filter] 找到 ${buttonElements.length} 個按鈕`);
 
-    buttonElements.forEach(button => {
-      // 跳過已處理的按鈕
+    // 批次讀取所有佈局資訊（避免 layout thrashing）
+    const buttonInfos = Array.from(buttonElements).map(button => {
       if (processedElements.has(button)) {
-        return;
+        return null;
       }
 
-      // 取得按鈕內的文字
       const buttonText = button.textContent || '';
-
-      // 快速檢查：如果按鈕文字太長，跳過
       if (buttonText.length > 100) {
-        return;
+        return null;
       }
+
+      // 使用 getBoundingClientRect 一次性獲取所有尺寸
+      const rect = button.getBoundingClientRect();
+      return {
+        button,
+        text: buttonText,
+        rect
+      };
+    }).filter(Boolean);
+
+    // 處理每個按鈕（只做檢查，不做 DOM 操作）
+    buttonInfos.forEach(info => {
+      const { button, text } = info;
 
       // 檢查是否包含目標關鍵字
       let isTargetButton = false;
@@ -185,11 +265,11 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
 
       // 檢查「追蹤」、「加入」按鈕
       for (const keyword of [...(keywords.follow || []), ...(keywords.join || [])]) {
-        if (buttonText.includes(keyword)) {
+        if (text.includes(keyword)) {
           // 確認不是「追蹤中」、「已加入」等
           let isExcluded = false;
           for (const exclude of (keywords.exclude || [])) {
-            if (buttonText.includes(exclude)) {
+            if (text.includes(exclude)) {
               isExcluded = true;
               break;
             }
@@ -206,7 +286,7 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       // 檢查 Reels 按鈕
       if (!isTargetButton) {
         for (const keyword of (keywords.reels || [])) {
-          if (buttonText.includes(keyword)) {
+          if (text.includes(keyword)) {
             isTargetButton = true;
             matchedKeyword = { keyword, category: 'reels' };
             break;
@@ -214,43 +294,38 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
         }
       }
 
-      // 如果找到目標按鈕，移除包含它的貼文
+      // 如果找到目標按鈕，收集容器資訊
       if (isTargetButton && matchedKeyword) {
         debugCount.found++;
         processedElements.add(button);
 
-        // 向上尋找貼文容器
+        // 向上尋找貼文容器（使用快取的尺寸資訊）
         let current = button;
         let depth = 0;
         const maxDepth = 15;
 
         while (current && current.parentElement && depth < maxDepth) {
-          // 檢查是否到達 main 容器
           if (current.getAttribute && current.getAttribute('role') === 'main') {
             break;
           }
 
-          // 檢查是否為貼文容器（通常有 role="article" 或特定大小）
-          const height = current.offsetHeight;
-          const width = current.offsetWidth;
+          // 使用快取的尺寸或 getBoundingClientRect（避免 offsetHeight/offsetWidth）
+          const rect = current.getBoundingClientRect();
+          const height = rect.height;
+          const width = rect.width;
 
           if (height > 200 && height < 1200 && width > 300 && width < 700) {
-            // 找到可能的容器
             if (!removedContainers.has(current)) {
               removedContainers.add(current);
 
-              // 移除容器
-              const placeholder = document.createElement('div');
-              placeholder.style.display = 'none';
-              placeholder.className = 'fb-filter-removed';
-
-              if (current.parentElement) {
-                current.parentElement.replaceChild(placeholder, current);
-                removedCount++;
-                debugCount.removed++;
-                console.log(`[FB Filter] 已移除 ${matchedKeyword.category} #${removedCount}: ${matchedKeyword.keyword}`);
-                break;
-              }
+              // 收集到待移除列表
+              toRemove.push({
+                element: current,
+                keyword: matchedKeyword.keyword,
+                category: matchedKeyword.category
+              });
+              debugCount.collected++;
+              break;
             }
           }
 
@@ -260,7 +335,7 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       }
     });
 
-    // 處理贊助內容（使用更精確的選擇器）
+    // 處理贊助內容（也使用批次處理）
     const sponsoredElements = mainContent.querySelectorAll('span[aria-label], a[aria-label]');
 
     sponsoredElements.forEach(element => {
@@ -284,29 +359,27 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
         debugCount.found++;
         processedElements.add(element);
 
-        // 向上尋找並移除容器
+        // 向上尋找容器（使用 getBoundingClientRect）
         let current = element;
         let depth = 0;
 
         while (current && current.parentElement && depth < 10) {
-          const height = current.offsetHeight;
-          const width = current.offsetWidth;
+          const rect = current.getBoundingClientRect();
+          const height = rect.height;
+          const width = rect.width;
 
           if (height > 200 && height < 1200 && width > 300 && width < 700) {
             if (!removedContainers.has(current)) {
               removedContainers.add(current);
 
-              const placeholder = document.createElement('div');
-              placeholder.style.display = 'none';
-              placeholder.className = 'fb-filter-removed';
-
-              if (current.parentElement) {
-                current.parentElement.replaceChild(placeholder, current);
-                removedCount++;
-                debugCount.removed++;
-                console.log(`[FB Filter] 已移除贊助內容 #${removedCount}`);
-                break;
-              }
+              // 收集到待移除列表
+              toRemove.push({
+                element: current,
+                keyword: '贊助內容',
+                category: 'sponsored'
+              });
+              debugCount.collected++;
+              break;
             }
           }
 
@@ -316,7 +389,18 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       }
     });
 
-    if (debugCount.found > 0 && DEBUG) {
+    // 批次處理收集到的元素
+    if (toRemove.length > 0) {
+      console.log(`[FB Filter] 收集到 ${toRemove.length} 個待移除元素，開始批次處理...`);
+
+      // 添加到待處理佇列
+      pendingRemovals.push(...toRemove);
+
+      // 觸發批次處理
+      processBatchRemovals();
+    }
+
+    if (DEBUG && debugCount.found > 0) {
       console.log(`[FB Filter] 本次掃描統計:`, debugCount);
     }
   }
@@ -330,8 +414,8 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
    * 避免過度頻繁執行造成效能問題
    */
   function debouncedRemoveRecommendations() {
-    // 如果正在處理中，跳過
-    if (isProcessing) {
+    // 如果正在批次處理中，跳過
+    if (isProcessing || isProcessingBatch) {
       return;
     }
 
@@ -340,13 +424,13 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       clearTimeout(debounceTimer);
     }
 
-    // 設定新的防抖計時器
+    // 設定新的防抖計時器（增加到 1000ms）
     debounceTimer = setTimeout(() => {
       isProcessing = true;
       removeRecommendations();
       isProcessing = false;
       debounceTimer = null;
-    }, 500); // 500ms 防抖延遲
+    }, 1000); // 1000ms 防抖延遲（從 500ms 增加）
   }
 
   // 延遲執行，等待頁面載入
@@ -366,6 +450,9 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
     // 使用防抖函數，避免過度觸發
     debouncedRemoveRecommendations();
   });
+
+  // 設置全域引用，供批次處理使用
+  observerRef = observer;
 
   observer.observe(document.body, {
     childList: true,

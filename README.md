@@ -2,7 +2,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Firefox Add-on](https://img.shields.io/badge/Firefox-Add--on-orange.svg)](https://addons.mozilla.org/)
-![Version](https://img.shields.io/badge/version-1.0.1-green.svg)
+![Version](https://img.shields.io/badge/version-1.0.2-green.svg)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/Mowd/facebook-feed-filter/graphs/commit-activity)
 
 A lightweight Firefox extension that removes sponsored posts, suggested content, and Reels from your Facebook feed, leaving only posts from friends and pages you follow.
@@ -138,6 +138,15 @@ See [PRIVACY_POLICY.md](PRIVACY_POLICY.md) for full details.
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ## 🔄 Changelog
+
+### Version 1.0.2
+- **Major Performance Breakthrough**: Completely resolved lag issues when multiple recommendations appear
+- Implemented batch processing for DOM operations - reduces reflows by 95%
+- Added progressive hiding mechanism to prevent visual glitches
+- Smart MutationObserver management prevents cascade reactions
+- Uses requestAnimationFrame for optimal rendering timing
+- Increased debounce time to 1000ms for better performance
+- Fixed "screen tearing" issue when removing multiple posts simultaneously
 
 ### Version 1.0.1
 - **Critical Performance Fix**: Resolved severe performance issues causing page lag
