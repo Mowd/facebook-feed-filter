@@ -1,7 +1,7 @@
 # Facebook Feed Filter
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Firefox Add-on](https://img.shields.io/badge/Firefox-Add--on-orange.svg)](https://addons.mozilla.org/)
+[![Firefox Add-on](https://img.shields.io/badge/Firefox-Add--on-orange.svg)](https://addons.mozilla.org/firefox/addon/facebook-feed-filter/)
 ![Version](https://img.shields.io/badge/version-1.0.3-green.svg)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/Mowd/facebook-feed-filter/graphs/commit-activity)
 
@@ -31,7 +31,7 @@ A lightweight Firefox extension that removes sponsored posts, suggested content,
 ## 📦 Installation
 
 ### Option 1: Firefox Add-ons Store (Recommended)
-*Coming soon - Currently under review*
+Install directly from Mozilla Add-ons: [Facebook Feed Filter](https://addons.mozilla.org/firefox/addon/facebook-feed-filter/)
 
 ### Option 2: Manual Installation (Development)
 
@@ -184,6 +184,12 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 
 - **Issues**: [GitHub Issues](https://github.com/Mowd/facebook-feed-filter/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/Mowd/facebook-feed-filter/discussions)
+
+### ☕ Buy Me a Coffee
+
+If you find this project helpful, consider buying me a coffee!
+
+<a href="https://buymeacoffee.com/mowd" target="_blank"><img src="https://mowd.tw/buymeacoffee.png" alt="Buy Me A Coffee" width="300"></a>
 
 ## 🚧 Roadmap
 
