@@ -1,6 +1,12 @@
 /**
- * Facebook Feed Filter v1.0.2
+ * Facebook Feed Filter v1.0.3
  * 精準移除 Facebook 推薦內容、贊助貼文和 Reels
+ *
+ * 更新內容 (v1.0.3):
+ * - 新增檢測 .html-div > span 中的「為你推薦」標記
+ * - 使用完全匹配而非包含，避免誤判正常貼文內容
+ * - 優先過濾含有推薦標記的貼文
+ * - 支援多語言推薦標記檢測
  *
  * 更新內容 (v1.0.2):
  * - 批次處理 DOM 操作，大幅改善效能
@@ -30,7 +36,7 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
     'zh-TW': {
       follow: ['追蹤'],
       join: ['加入'],
-      suggested: ['推薦', '建議'],
+      suggested: ['為你推薦'],  // Facebook 的推薦標記（完全匹配）
       sponsored: ['贊助'],
       reels: ['Reels', '連續短片'],
       // 排除這些詞彙（表示已經在追蹤或已加入的內容）
@@ -45,7 +51,7 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
     'zh-CN': {
       follow: ['追踪', '关注'],
       join: ['加入'],
-      suggested: ['推荐', '建议'],
+      suggested: ['为你推荐'],  // Facebook 的推薦標記（完全匹配）
       sponsored: ['赞助'],
       reels: ['Reels', '连续短片'],
       exclude: ['追踪中', '关注中', '已加入', '已关注'],
@@ -58,7 +64,7 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
     'en': {
       follow: ['Follow'],
       join: ['Join'],
-      suggested: ['Suggested', 'Suggested for you'],
+      suggested: ['Suggested for you'],  // Facebook 的推薦標記（完全匹配）
       sponsored: ['Sponsored'],
       reels: ['Reels'],
       exclude: ['Following', 'Followed', 'Joined'],
@@ -71,7 +77,7 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
     'ja': {
       follow: ['フォロー', 'フォローする'],
       join: ['参加', '参加する'],
-      suggested: ['おすすめ', 'あなたへのおすすめ'],
+      suggested: ['あなたへのおすすめ'],  // Facebook 的推薦標記（完全匹配）
       sponsored: ['スポンサー', '広告'],
       reels: ['リール', 'Reels'],
       exclude: ['フォロー中', '参加済み', 'フォロー済み'],
@@ -84,7 +90,7 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
     'ko': {
       follow: ['팔로우', '팔로우하기'],
       join: ['가입', '가입하기'],
-      suggested: ['추천', '회원님을 위한 추천'],
+      suggested: ['회원님을 위한 추천'],  // Facebook 的推薦標記（完全匹配）
       sponsored: ['스폰서', '광고'],
       reels: ['릴스', 'Reels'],
       exclude: ['팔로잉', '가입함', '팔로우 중'],
@@ -97,7 +103,7 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
     'fr': {
       follow: ['Suivre', "S'abonner"],
       join: ['Rejoindre'],
-      suggested: ['Suggéré', 'Suggéré pour vous'],
+      suggested: ['Suggéré pour vous'],  // Facebook 的推薦標記（完全匹配）
       sponsored: ['Sponsorisé'],
       reels: ['Reels'],
       exclude: ['Abonné', 'Déjà abonné', 'Suivi'],
@@ -110,7 +116,7 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
     'de': {
       follow: ['Folgen', 'Abonnieren'],
       join: ['Beitreten'],
-      suggested: ['Vorgeschlagen', 'Vorschläge für dich'],
+      suggested: ['Für dich vorgeschlagen'],  // Facebook 的推薦標記（完全匹配）
       sponsored: ['Gesponsert'],
       reels: ['Reels'],
       exclude: ['Abonniert', 'Folge ich', 'Beigetreten'],
@@ -123,7 +129,7 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
     'es': {
       follow: ['Seguir'],
       join: ['Unirse'],
-      suggested: ['Sugerido', 'Sugerencias para ti'],
+      suggested: ['Sugerencia para ti'],  // Facebook 的推薦標記（完全匹配）
       sponsored: ['Patrocinado', 'Publicidad'],
       reels: ['Reels'],
       exclude: ['Siguiendo', 'Seguido', 'Unido'],
@@ -286,6 +292,77 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
     let debugCount = { found: 0, collected: 0, skipped: 0 };
     const keywords = getFilterKeywords();
     const toRemove = []; // 收集要移除的元素
+
+    // 新增：優先檢查 .html-div > span 中的「為你推薦」標記
+    const htmlDivElements = mainContent.querySelectorAll('.html-div > span');
+
+    if (DEBUG) console.log(`[FB Filter] 找到 ${htmlDivElements.length} 個 .html-div > span 元素`);
+
+    htmlDivElements.forEach(span => {
+      if (processedElements.has(span)) {
+        return;
+      }
+
+      const text = (span.textContent || '').trim();
+
+      // 使用現有的語言配置來檢查推薦標記
+      let isRecommended = false;
+      let matchedKeyword = null;
+
+      // 使用完全匹配而非包含，避免誤判正常貼文
+      const suggestedMarkers = keywords.suggested || [];
+      for (const keyword of suggestedMarkers) {
+        if (text === keyword) {
+          isRecommended = true;
+          matchedKeyword = keyword;
+          break;
+        }
+      }
+
+      if (isRecommended) {
+        debugCount.found++;
+        processedElements.add(span);
+
+        if (DEBUG) console.log(`[FB Filter] 發現推薦標記: 完全匹配 "${matchedKeyword}" in .html-div > span`);
+
+        // 向上尋找包含此推薦標記的貼文容器
+        let current = span;
+        let depth = 0;
+        const maxDepth = 20;
+
+        while (current && current.parentElement && depth < maxDepth) {
+          if (current.getAttribute && current.getAttribute('role') === 'main') {
+            break;
+          }
+
+          // 尋找貼文容器（通常有一定的高度和寬度）
+          const rect = current.getBoundingClientRect();
+          const height = rect.height;
+          const width = rect.width;
+
+          // 貼文容器的典型尺寸範圍
+          if (height > 200 && height < 1500 && width > 300 && width < 700) {
+            if (!removedContainers.has(current)) {
+              removedContainers.add(current);
+
+              // 收集到待移除列表
+              toRemove.push({
+                element: current,
+                keyword: matchedKeyword,
+                category: 'button'  // 使用 'button' category 以顯示「已移除推薦內容」
+              });
+              debugCount.collected++;
+
+              if (DEBUG) console.log(`[FB Filter] 標記移除容器 (高度: ${height}px, 寬度: ${width}px)`);
+              break;
+            }
+          }
+
+          current = current.parentElement;
+          depth++;
+        }
+      }
+    });
 
     // 優化策略：只搜尋可能包含推薦內容的按鈕
     const buttonElements = mainContent.querySelectorAll('[role="button"]');
