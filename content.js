@@ -1,6 +1,12 @@
 /**
- * Facebook Feed Filter v1.0.3
+ * Facebook Feed Filter v1.0.4
  * 精準移除 Facebook 推薦內容、贊助貼文和 Reels
+ *
+ * 更新內容 (v1.0.4):
+ * - 支援解析 aria-labelledby 內的隱藏贊助標記
+ * - 新增 CTA 型廣告的後備檢測邏輯
+ * - 依內容結構評分祖先容器，改為移除完整貼文
+ * - 修正大型廣告只移除中段內容的問題
  *
  * 更新內容 (v1.0.3):
  * - 新增檢測 .html-div > span 中的「為你推薦」標記
@@ -189,6 +195,152 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
     }
 
     return currentKeywords;
+  }
+
+  /**
+   * 標準化文字內容，避免空白與換行造成比對失敗
+   */
+  function normalizeText(text) {
+    return (text || '').replace(/\s+/g, ' ').trim();
+  }
+
+  /**
+   * 解析 aria-labelledby 指向的隱藏文字
+   * Facebook 目前會把「贊助」放在隱藏節點，再由可見元素引用
+   */
+  function resolveAriaLabelledbyText(element) {
+    if (!element || !element.getAttribute) {
+      return '';
+    }
+
+    const labelledBy = element.getAttribute('aria-labelledby');
+    if (!labelledBy) {
+      return '';
+    }
+
+    return labelledBy
+      .split(/\s+/)
+      .map(id => {
+        const target = document.getElementById(id);
+        return normalizeText(target ? target.textContent : '');
+      })
+      .filter(Boolean)
+      .join(' ');
+  }
+
+  /**
+   * 收集用於偵測的所有文字來源
+   * 包含可見文字、aria-label、自身與後代的 aria-labelledby 解析結果
+   */
+  function collectDetectionTexts(element) {
+    if (!element) {
+      return [];
+    }
+
+    const texts = new Set();
+    const addText = (value) => {
+      const normalized = normalizeText(value);
+      if (normalized) {
+        texts.add(normalized);
+      }
+    };
+
+    addText(element.textContent);
+    addText(element.getAttribute ? element.getAttribute('aria-label') || '' : '');
+    addText(resolveAriaLabelledbyText(element));
+
+    if (element.querySelectorAll) {
+      element.querySelectorAll('[aria-labelledby]').forEach(child => {
+        addText(resolveAriaLabelledbyText(child));
+      });
+    }
+
+    return Array.from(texts);
+  }
+
+  /**
+   * 評估祖先是否像是一整篇貼文容器
+   * 用於避免只移除廣告內部卡片，而保留貼文標頭/互動列
+   */
+  function getPostContainerScore(element) {
+    if (!element || !element.querySelector) {
+      return 0;
+    }
+
+    let score = 0;
+
+    if (element.querySelector('[data-ad-rendering-role="profile_name"]')) score += 4;
+    if (element.querySelector('[data-ad-rendering-role="story_message"]')) score += 3;
+    if (element.querySelector('[data-ad-rendering-role="meta"]')) score += 2;
+    if (element.querySelector('[data-ad-rendering-role="image"]')) score += 2;
+    if (element.querySelector('[data-ad-rendering-role="like_button"]')) score += 2;
+    if (element.querySelector('[data-ad-rendering-role="comment_button"]')) score += 1;
+    if (element.querySelector('[data-ad-rendering-role="share_button"]')) score += 1;
+    if (element.querySelector('[role="toolbar"]')) score += 1;
+
+    return score;
+  }
+
+  /**
+   * 從錨點向上尋找最適合移除的整篇貼文容器
+   * 不採用第一個符合尺寸的祖先，而是挑選訊號最完整的候選節點
+   */
+  function findBestPostContainer(startElement, options = {}) {
+    if (!startElement) {
+      return null;
+    }
+
+    const {
+      maxDepth = 25,
+      minHeight = 200,
+      maxHeight = 1800,
+      minWidth = 300,
+      maxWidth = 700
+    } = options;
+
+    let current = startElement;
+    let depth = 0;
+    let firstValidCandidate = null;
+    let bestCandidate = null;
+
+    while (current && current.parentElement && depth < maxDepth) {
+      if (current.getAttribute && current.getAttribute('role') === 'main') {
+        break;
+      }
+
+      const rect = current.getBoundingClientRect();
+      const height = rect.height;
+      const width = rect.width;
+
+      if (height > minHeight && height < maxHeight && width > minWidth && width < maxWidth) {
+        const candidate = {
+          element: current,
+          depth,
+          score: getPostContainerScore(current)
+        };
+
+        if (!firstValidCandidate) {
+          firstValidCandidate = candidate;
+        }
+
+        if (
+          !bestCandidate ||
+          candidate.score > bestCandidate.score ||
+          (candidate.score === bestCandidate.score && candidate.score > 0 && candidate.depth < bestCandidate.depth)
+        ) {
+          bestCandidate = candidate;
+        }
+      }
+
+      current = current.parentElement;
+      depth++;
+    }
+
+    if (bestCandidate && bestCandidate.score > 0) {
+      return bestCandidate.element;
+    }
+
+    return firstValidCandidate ? firstValidCandidate.element : null;
   }
 
 
@@ -470,21 +622,22 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
     });
 
     // 處理贊助內容（也使用批次處理）
-    const sponsoredElements = mainContent.querySelectorAll('span[aria-label], a[aria-label]');
+    const sponsoredElements = mainContent.querySelectorAll('span[aria-label], a[aria-label], [aria-labelledby]');
 
     sponsoredElements.forEach(element => {
       if (processedElements.has(element)) {
         return;
       }
 
-      const text = element.textContent || '';
-      const ariaLabel = element.getAttribute('aria-label') || '';
+      const detectionTexts = collectDetectionTexts(element);
 
       // 檢查贊助關鍵字
       let isSponsored = false;
+      let matchedKeyword = null;
       for (const keyword of (keywords.sponsored || [])) {
-        if (text.includes(keyword) || ariaLabel.includes(keyword)) {
+        if (detectionTexts.some(text => text.includes(keyword))) {
           isSponsored = true;
+          matchedKeyword = keyword;
           break;
         }
       }
@@ -493,33 +646,44 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
         debugCount.found++;
         processedElements.add(element);
 
-        // 向上尋找容器（使用 getBoundingClientRect）
-        let current = element;
-        let depth = 0;
+        const container = findBestPostContainer(element, { maxDepth: 25 });
 
-        while (current && current.parentElement && depth < 10) {
-          const rect = current.getBoundingClientRect();
-          const height = rect.height;
-          const width = rect.width;
+        if (container && !removedContainers.has(container)) {
+          removedContainers.add(container);
 
-          if (height > 200 && height < 1200 && width > 300 && width < 700) {
-            if (!removedContainers.has(current)) {
-              removedContainers.add(current);
-
-              // 收集到待移除列表
-              toRemove.push({
-                element: current,
-                keyword: '贊助內容',
-                category: 'sponsored'
-              });
-              debugCount.collected++;
-              break;
-            }
-          }
-
-          current = current.parentElement;
-          depth++;
+          toRemove.push({
+            element: container,
+            keyword: matchedKeyword || 'Sponsored',
+            category: 'sponsored'
+          });
+          debugCount.collected++;
         }
+      }
+    });
+
+    // 後備規則：部分贊助貼文不再暴露可解析的「贊助」文字
+    // 但 CTA 區塊的 data-ad-rendering-role 目前仍是廣告專屬結構
+    const sponsoredCtaElements = mainContent.querySelectorAll('[data-ad-rendering-role^="cta"]');
+
+    sponsoredCtaElements.forEach(element => {
+      if (processedElements.has(element)) {
+        return;
+      }
+
+      debugCount.found++;
+      processedElements.add(element);
+
+      const container = findBestPostContainer(element, { maxDepth: 25 });
+
+      if (container && !removedContainers.has(container)) {
+        removedContainers.add(container);
+
+        toRemove.push({
+          element: container,
+          keyword: 'CTA fallback',
+          category: 'sponsored'
+        });
+        debugCount.collected++;
       }
     });
 

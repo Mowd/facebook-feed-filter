@@ -2,7 +2,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Firefox Add-on](https://img.shields.io/badge/Firefox-Add--on-orange.svg)](https://addons.mozilla.org/firefox/addon/facebook-feed-filter/)
-![Version](https://img.shields.io/badge/version-1.0.3-green.svg)
+![Version](https://img.shields.io/badge/version-1.0.4-green.svg)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/Mowd/facebook-feed-filter/graphs/commit-activity)
 
 A lightweight Firefox extension that removes sponsored posts, suggested content, and Reels from your Facebook feed, leaving only posts from friends and pages you follow.
@@ -138,6 +138,12 @@ See [PRIVACY_POLICY.md](PRIVACY_POLICY.md) for full details.
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ## 🔄 Changelog
+
+### Version 1.0.4
+- **Improved Sponsored Post Detection**: Added support for hidden sponsored labels referenced through `aria-labelledby`
+- Added CTA-based fallback detection for ad layouts without readable sponsored text
+- Improved ancestor container selection so the entire sponsored post is removed instead of only the inner ad card
+- Fixed large sponsored image posts leaving the header and engagement bar behind
 
 ### Version 1.0.3
 - **Updated for Facebook's new recommendation system**: Now detects and filters posts with Facebook's new recommendation markers
