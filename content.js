@@ -1,6 +1,12 @@
 /**
- * Facebook Feed Filter v1.0.4
+ * Facebook Feed Filter v1.0.5
  * 精準移除 Facebook 推薦內容、贊助貼文和 Reels
+ *
+ * 更新內容 (v1.0.5):
+ * - 改用區域化 microtask 掃描，降低動態貼文的移除延遲
+ * - 在畫面繪製前隱藏新版贊助貼文，避免內容短暫閃現
+ * - 支援新版 Reel 與「你可能認識的朋友」完整區塊移除
+ * - 修正社團推薦貼文和大型 feed unit 的容器選取
  *
  * 更新內容 (v1.0.4):
  * - 支援解析 aria-labelledby 內的隱藏贊助標記
@@ -25,12 +31,17 @@
 (function() {
   'use strict';
 
+  const BUILD_ID = '1.0.5';
+
   // Debug mode - 可以設為 true 來查看詳細的過濾決策
-const DEBUG = false;  // 暫時開啟偵錯模式來診斷問題
-if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON');
+  const DEBUG = false;
+  if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON');
 
   // 初始化：偵測語言
-  console.log('[FB Filter] 初始化中...');
+  if (document.documentElement) {
+    document.documentElement.setAttribute('data-fb-feed-filter-build', BUILD_ID);
+  }
+  console.log(`[FB Filter] 初始化中... build ${BUILD_ID}`);
 
   // 已處理的元素和容器
   const processedElements = new WeakSet();
@@ -43,8 +54,9 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       follow: ['追蹤'],
       join: ['加入'],
       suggested: ['為你推薦'],  // Facebook 的推薦標記（完全匹配）
+      peopleSuggestions: ['你可能認識的朋友'],
       sponsored: ['贊助'],
-      reels: ['Reels', '連續短片'],
+      reels: ['Reel', 'Reels', '連續短片'],
       // 排除這些詞彙（表示已經在追蹤或已加入的內容）
       exclude: ['追蹤中', '已加入', '已追蹤'],
       // 移除後的提示文字
@@ -58,8 +70,9 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       follow: ['追踪', '关注'],
       join: ['加入'],
       suggested: ['为你推荐'],  // Facebook 的推薦標記（完全匹配）
+      peopleSuggestions: ['你可能认识的人', '你可能认识的朋友'],
       sponsored: ['赞助'],
-      reels: ['Reels', '连续短片'],
+      reels: ['Reel', 'Reels', '连续短片'],
       exclude: ['追踪中', '关注中', '已加入', '已关注'],
       removedText: {
         button: '已移除推荐内容',
@@ -71,8 +84,9 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       follow: ['Follow'],
       join: ['Join'],
       suggested: ['Suggested for you'],  // Facebook 的推薦標記（完全匹配）
+      peopleSuggestions: ['People You May Know'],
       sponsored: ['Sponsored'],
-      reels: ['Reels'],
+      reels: ['Reel', 'Reels'],
       exclude: ['Following', 'Followed', 'Joined'],
       removedText: {
         button: 'Removed recommendation',
@@ -84,8 +98,9 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       follow: ['フォロー', 'フォローする'],
       join: ['参加', '参加する'],
       suggested: ['あなたへのおすすめ'],  // Facebook 的推薦標記（完全匹配）
+      peopleSuggestions: ['知り合いかも'],
       sponsored: ['スポンサー', '広告'],
-      reels: ['リール', 'Reels'],
+      reels: ['リール', 'Reel', 'Reels'],
       exclude: ['フォロー中', '参加済み', 'フォロー済み'],
       removedText: {
         button: 'おすすめを削除しました',
@@ -97,8 +112,9 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       follow: ['팔로우', '팔로우하기'],
       join: ['가입', '가입하기'],
       suggested: ['회원님을 위한 추천'],  // Facebook 的推薦標記（完全匹配）
+      peopleSuggestions: ['알 수도 있는 사람'],
       sponsored: ['스폰서', '광고'],
-      reels: ['릴스', 'Reels'],
+      reels: ['릴스', 'Reel', 'Reels'],
       exclude: ['팔로잉', '가입함', '팔로우 중'],
       removedText: {
         button: '추천 콘텐츠 제거됨',
@@ -110,8 +126,9 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       follow: ['Suivre', "S'abonner"],
       join: ['Rejoindre'],
       suggested: ['Suggéré pour vous'],  // Facebook 的推薦標記（完全匹配）
+      peopleSuggestions: ['Vous connaissez peut-être'],
       sponsored: ['Sponsorisé'],
-      reels: ['Reels'],
+      reels: ['Reel', 'Reels'],
       exclude: ['Abonné', 'Déjà abonné', 'Suivi'],
       removedText: {
         button: 'Recommandation supprimée',
@@ -123,8 +140,9 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       follow: ['Folgen', 'Abonnieren'],
       join: ['Beitreten'],
       suggested: ['Für dich vorgeschlagen'],  // Facebook 的推薦標記（完全匹配）
+      peopleSuggestions: ['Personen, die du kennen könntest'],
       sponsored: ['Gesponsert'],
-      reels: ['Reels'],
+      reels: ['Reel', 'Reels'],
       exclude: ['Abonniert', 'Folge ich', 'Beigetreten'],
       removedText: {
         button: 'Empfehlung entfernt',
@@ -136,8 +154,9 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       follow: ['Seguir'],
       join: ['Unirse'],
       suggested: ['Sugerencia para ti'],  // Facebook 的推薦標記（完全匹配）
+      peopleSuggestions: ['Personas que quizá conozcas'],
       sponsored: ['Patrocinado', 'Publicidad'],
-      reels: ['Reels'],
+      reels: ['Reel', 'Reels'],
       exclude: ['Siguiendo', 'Seguido', 'Unido'],
       removedText: {
         button: 'Recomendación eliminada',
@@ -204,6 +223,136 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
     return (text || '').replace(/\s+/g, ' ').trim();
   }
 
+  const HIGH_CONFIDENCE_AD_SELECTOR = [
+    '[attributionsrc*="/privacy_sandbox/comet/register/source/"]',
+    '[data-ad-rendering-role^="cta"]',
+    'img[src*="/t45.1600-"]'
+  ].join(', ');
+
+  const REEL_LINK_SELECTOR = [
+    'a[href^="/reel/"]',
+    'a[href*="facebook.com/reel/"]'
+  ].join(', ');
+
+  function isExactKeywordLabel(text, labels) {
+    const normalized = normalizeText(text).toLocaleLowerCase();
+    if (!normalized) {
+      return false;
+    }
+
+    return (labels || []).some(keyword =>
+      normalizeText(keyword).toLocaleLowerCase() === normalized
+    );
+  }
+
+  function isReelLabel(text, keywords) {
+    return isExactKeywordLabel(text, keywords.reels);
+  }
+
+  function isReelRegion(element, keywords) {
+    if (!element || element.getAttribute('role') !== 'region') {
+      return false;
+    }
+
+    if (isReelLabel(element.getAttribute('aria-label'), keywords)) {
+      return true;
+    }
+
+    // Facebook 會不定期拿掉標題，但 Reel 輪播仍會包含多個 /reel/ 連結。
+    return element.querySelectorAll(REEL_LINK_SELECTOR).length >= 2;
+  }
+
+  function isPeopleSuggestionRegion(element, keywords) {
+    return Boolean(
+      element &&
+      element.getAttribute('role') === 'region' &&
+      isExactKeywordLabel(
+        element.getAttribute('aria-label'),
+        keywords.peopleSuggestions
+      )
+    );
+  }
+
+  function isEmptySectionSibling(element) {
+    if (!element || normalizeText(element.textContent)) {
+      return false;
+    }
+
+    return !element.querySelector(
+      'a, button, img, video, [role="button"], [role="region"]'
+    );
+  }
+
+  /**
+   * 橫向推薦區塊外層另包一層 section shell，旁邊只有空白分隔線。
+   * 一併移除 shell，避免留下卡片間距或只移除輪播內層。
+   */
+  function promoteSectionShell(sectionContent, mainContent) {
+    const card = sectionContent && sectionContent.parentElement
+      ? sectionContent.parentElement
+      : sectionContent;
+    const shell = card ? card.parentElement : null;
+
+    if (!card || !shell || shell === mainContent || shell.children.length > 3) {
+      return card;
+    }
+
+    const meaningfulChildren = Array.from(shell.children).filter(
+      child => !isEmptySectionSibling(child)
+    );
+
+    return meaningfulChildren.length === 1 && meaningfulChildren[0] === card
+      ? shell
+      : card;
+  }
+
+  function findLabeledSectionContainer(region, mainContent, isMatchingLabel) {
+    const feedUnit = findFeedUnitContainer(region, mainContent);
+    if (feedUnit) {
+      return feedUnit;
+    }
+
+    let current = region.parentElement;
+    let depth = 0;
+
+    while (current && current !== mainContent && depth < 12) {
+      const hasMatchingHeading = Array.from(
+        current.querySelectorAll('h1, h2, h3, h4, [role="heading"]')
+      ).some(heading => isMatchingLabel(heading.textContent));
+
+      if (hasMatchingHeading) {
+        return promoteSectionShell(current, mainContent);
+      }
+
+      current = current.parentElement;
+      depth++;
+    }
+
+    return findBestPostContainer(region, {
+      mainContent,
+      maxDepth: 25,
+      maxHeight: 3000,
+      minimumScore: 0,
+      allowUnscoredFallback: true
+    });
+  }
+
+  function findReelContainer(region, mainContent, keywords) {
+    return findLabeledSectionContainer(
+      region,
+      mainContent,
+      text => isReelLabel(text, keywords)
+    );
+  }
+
+  function findPeopleSuggestionContainer(region, mainContent, keywords) {
+    return findLabeledSectionContainer(
+      region,
+      mainContent,
+      text => isExactKeywordLabel(text, keywords.peopleSuggestions)
+    );
+  }
+
   /**
    * 解析 aria-labelledby 指向的隱藏文字
    * Facebook 目前會把「贊助」放在隱藏節點，再由可見元素引用
@@ -229,8 +378,8 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
   }
 
   /**
-   * 收集用於偵測的所有文字來源
-   * 包含可見文字、aria-label、自身與後代的 aria-labelledby 解析結果
+   * 收集用於偵測的文字來源
+   * 每個 aria-labelledby 節點會由外層 selector 個別掃描，避免重複遍歷後代
    */
   function collectDetectionTexts(element) {
     if (!element) {
@@ -249,13 +398,51 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
     addText(element.getAttribute ? element.getAttribute('aria-label') || '' : '');
     addText(resolveAriaLabelledbyText(element));
 
-    if (element.querySelectorAll) {
-      element.querySelectorAll('[aria-labelledby]').forEach(child => {
-        addText(resolveAriaLabelledbyText(child));
-      });
+    return Array.from(texts);
+  }
+
+  /**
+   * 找到 Facebook feed 中對應的完整內容單元。
+   * 這些結構訊號比尺寸與內容評分更早出現，也不會只選到廣告內層卡片。
+   */
+  function findFeedUnitContainer(startElement, mainContent = null) {
+    const element = startElement && startElement.nodeType === 1
+      ? startElement
+      : startElement && startElement.parentElement;
+
+    if (!element) {
+      return null;
     }
 
-    return Array.from(texts);
+    const main = mainContent || element.closest('[role="main"]');
+    if (!main || !main.contains(element)) {
+      return null;
+    }
+
+    const feed = element.closest('[role="feed"]');
+    if (feed && main.contains(feed)) {
+      let unit = element;
+
+      while (unit.parentElement && unit.parentElement !== feed) {
+        unit = unit.parentElement;
+      }
+
+      if (unit.parentElement === feed) {
+        return unit;
+      }
+    }
+
+    const pagelet = element.closest('[data-pagelet^="FeedUnit_"]');
+    if (pagelet && main.contains(pagelet)) {
+      return pagelet;
+    }
+
+    const article = element.closest('[role="article"]');
+    if (article && main.contains(article)) {
+      return article;
+    }
+
+    return null;
   }
 
   /**
@@ -267,16 +454,31 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       return 0;
     }
 
+    const roleWeights = {
+      profile_name: 4,
+      story_message: 3,
+      meta: 2,
+      image: 2,
+      like_button: 2,
+      comment_button: 1,
+      share_button: 1
+    };
+    const seenRoles = new Set();
     let score = 0;
 
-    if (element.querySelector('[data-ad-rendering-role="profile_name"]')) score += 4;
-    if (element.querySelector('[data-ad-rendering-role="story_message"]')) score += 3;
-    if (element.querySelector('[data-ad-rendering-role="meta"]')) score += 2;
-    if (element.querySelector('[data-ad-rendering-role="image"]')) score += 2;
-    if (element.querySelector('[data-ad-rendering-role="like_button"]')) score += 2;
-    if (element.querySelector('[data-ad-rendering-role="comment_button"]')) score += 1;
-    if (element.querySelector('[data-ad-rendering-role="share_button"]')) score += 1;
-    if (element.querySelector('[role="toolbar"]')) score += 1;
+    element.querySelectorAll('[data-ad-rendering-role], [role="toolbar"]').forEach(node => {
+      const adRole = node.getAttribute('data-ad-rendering-role');
+
+      if (adRole && roleWeights[adRole] && !seenRoles.has(adRole)) {
+        seenRoles.add(adRole);
+        score += roleWeights[adRole];
+      }
+
+      if (node.getAttribute('role') === 'toolbar' && !seenRoles.has('toolbar')) {
+        seenRoles.add('toolbar');
+        score += 1;
+      }
+    });
 
     return score;
   }
@@ -295,8 +497,16 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       minHeight = 200,
       maxHeight = 1800,
       minWidth = 300,
-      maxWidth = 700
+      maxWidth = 700,
+      minimumScore = 1,
+      allowUnscoredFallback = true,
+      mainContent = null
     } = options;
+
+    const feedUnit = findFeedUnitContainer(startElement, mainContent);
+    if (feedUnit) {
+      return feedUnit;
+    }
 
     let current = startElement;
     let depth = 0;
@@ -336,18 +546,136 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       depth++;
     }
 
-    if (bestCandidate && bestCandidate.score > 0) {
+    if (bestCandidate && bestCandidate.score >= minimumScore) {
       return bestCandidate.element;
     }
 
-    return firstValidCandidate ? firstValidCandidate.element : null;
+    return allowUnscoredFallback && firstValidCandidate ? firstValidCandidate.element : null;
+  }
+
+  /**
+   * 將 MutationObserver 提供的節點整理成最少的局部掃描根節點
+   */
+  function normalizeScanRoots(mainContent, requestedRoots, options = {}) {
+    if (!requestedRoots) {
+      return [mainContent];
+    }
+
+    const {
+      promoteToFeedUnit = true,
+      fallbackToMain = true
+    } = options;
+    const candidates = [];
+
+    Array.from(requestedRoots).forEach(root => {
+      let element = root && root.nodeType === 1
+        ? root
+        : root && root.parentElement;
+
+      if (!element || !element.isConnected) {
+        return;
+      }
+
+      if (
+        element.matches('.fb-filter-removed, .fb-filter-pending') ||
+        element.closest('.fb-filter-removed, .fb-filter-pending')
+      ) {
+        return;
+      }
+
+      if (element.contains(mainContent)) {
+        element = mainContent;
+      } else if (!mainContent.contains(element)) {
+        return;
+      }
+
+      candidates.push(
+        promoteToFeedUnit
+          ? findFeedUnitContainer(element, mainContent) || element
+          : element
+      );
+    });
+
+    const compactRoots = [];
+
+    candidates.forEach(candidate => {
+      if (compactRoots.some(root => root.contains(candidate))) {
+        return;
+      }
+
+      for (let index = compactRoots.length - 1; index >= 0; index--) {
+        if (candidate.contains(compactRoots[index])) {
+          compactRoots.splice(index, 1);
+        }
+      }
+
+      compactRoots.push(candidate);
+    });
+
+    // 先將同一貼文的 mutations 合併成一個 feed unit，避免動輒增加
+    // 幾十個孫節點時被誤升級成掃描整個首頁。
+    if (fallbackToMain && compactRoots.length > 40) {
+      return [mainContent];
+    }
+
+    return compactRoots;
+  }
+
+  /**
+   * 在局部根節點中搜尋，並包含根節點本身與符合條件的最近祖先。
+   */
+  function collectMatchingElements(mainContent, scanRoots, selector) {
+    const matches = new Set();
+
+    scanRoots.forEach(root => {
+      if (root.matches(selector)) {
+        matches.add(root);
+      }
+
+      const closestMatch = root.closest(selector);
+      if (closestMatch && mainContent.contains(closestMatch)) {
+        matches.add(closestMatch);
+      }
+
+      root.querySelectorAll(selector).forEach(element => matches.add(element));
+    });
+
+    return Array.from(matches);
   }
 
 
   // 批次處理佇列
   let pendingRemovals = [];
   let isProcessingBatch = false;
-  let observerRef = null; // 儲存 observer 的引用
+
+  /**
+   * 偵測成功時立即隱藏，DOM 替換則留到下一個 animation frame。
+   */
+  function queueRemoval(element, keyword, category) {
+    if (
+      !element ||
+      !element.parentElement ||
+      removedContainers.has(element) ||
+      element.matches('.fb-filter-removed') ||
+      element.closest('.fb-filter-removed')
+    ) {
+      return false;
+    }
+
+    const pendingAncestor = element.closest('.fb-filter-pending');
+    if (pendingAncestor && pendingAncestor !== element) {
+      return false;
+    }
+
+    removedContainers.add(element);
+    element.classList.add('fb-filter-pending');
+    element.style.visibility = 'hidden';
+    element.style.pointerEvents = 'none';
+
+    pendingRemovals.push({ element, keyword, category });
+    processBatchRemovals();
+    return true;
+  }
 
   /**
    * 批次移除元素，避免 DOM thrashing
@@ -359,72 +687,119 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
 
     isProcessingBatch = true;
 
-    // 暫停 MutationObserver 避免連鎖反應
-    if (observerRef) {
-      observerRef.disconnect();
-    }
+    const batch = pendingRemovals.splice(0, 20);
 
     // 使用 requestAnimationFrame 確保在適當時機執行
     requestAnimationFrame(() => {
-      const batch = pendingRemovals.splice(0, 10); // 每批最多處理 10 個
+      const keywords = getFilterKeywords();
 
-      // 先隱藏所有元素（不觸發重排）
       batch.forEach(item => {
         if (item.element && item.element.parentElement) {
-          item.element.style.visibility = 'hidden';
-          item.element.style.pointerEvents = 'none';
+          // 創建 placeholder 並顯示提示文字
+          const placeholder = document.createElement('div');
+          placeholder.className = 'fb-filter-removed';
+
+          const removedText = (keywords.removedText && keywords.removedText[item.category]) ||
+                             `Removed ${item.category}`;
+          placeholder.textContent = removedText;
+          placeholder.style.cssText = `
+            color: #8a8d91;
+            font-size: 14px;
+            padding: 8px;
+            text-align: center;
+            font-family: system-ui, -apple-system, sans-serif;
+          `;
+
+          try {
+            item.element.parentElement.replaceChild(placeholder, item.element);
+            removedCount++;
+            console.log(`[FB Filter] 已移除 ${item.category} #${removedCount}: ${item.keyword}`);
+          } catch (e) {
+            // 元素可能已被移除，忽略錯誤
+          }
         }
       });
 
-      // 延遲 100ms 後再移除 DOM
-      setTimeout(() => {
-        const keywords = getFilterKeywords();
+      isProcessingBatch = false;
 
-        batch.forEach(item => {
-          if (item.element && item.element.parentElement) {
-            // 創建 placeholder 並顯示提示文字
-            const placeholder = document.createElement('div');
-            placeholder.className = 'fb-filter-removed';
+      if (pendingRemovals.length > 0) {
+        processBatchRemovals();
+      }
+    });
+  }
 
-            // 設定提示文字
-            const removedText = keywords.removedText?.[item.category] ||
-                               `Removed ${item.category}`;
-            placeholder.textContent = removedText;
+  /**
+   * MutationObserver 的同一個 microtask 內處理高可信度訊號，
+   * 讓廣告與 Reel 在瀏覽器下一次繪製前就被隱藏。
+   */
+  function runImmediateFilters(requestedRoots) {
+    const mainContent = document.querySelector('[role="main"]');
+    if (!mainContent || !requestedRoots || requestedRoots.length === 0) {
+      return;
+    }
 
-            // 設定簡單樣式
-            placeholder.style.cssText = `
-              color: #8a8d91;
-              font-size: 14px;
-              padding: 8px;
-              text-align: center;
-              font-family: system-ui, -apple-system, sans-serif;
-            `;
+    const scanRoots = normalizeScanRoots(mainContent, requestedRoots, {
+      promoteToFeedUnit: false,
+      fallbackToMain: false
+    });
+    if (scanRoots.length === 0) {
+      return;
+    }
 
-            try {
-              item.element.parentElement.replaceChild(placeholder, item.element);
-              removedCount++;
-              console.log(`[FB Filter] 已移除 ${item.category} #${removedCount}: ${item.keyword}`);
-            } catch (e) {
-              // 元素可能已被移除，忽略錯誤
-            }
-          }
-        });
+    const keywords = getFilterKeywords();
+    const containerOptions = {
+      mainContent,
+      maxDepth: 30,
+      minimumScore: 1,
+      allowUnscoredFallback: false
+    };
 
-        // 重新啟用 MutationObserver
-        if (observerRef) {
-          observerRef.observe(document.body, {
-            childList: true,
-            subtree: true
-          });
+    const adMarkers = collectMatchingElements(
+      mainContent,
+      scanRoots,
+      HIGH_CONFIDENCE_AD_SELECTOR
+    );
+
+    adMarkers.forEach(marker => {
+      const container = findBestPostContainer(marker, containerOptions);
+      if (container) {
+        queueRemoval(container, 'early ad marker', 'sponsored');
+      }
+    });
+
+    const sectionRegions = collectMatchingElements(
+      mainContent,
+      scanRoots,
+      '[role="region"]'
+    );
+
+    sectionRegions.forEach(region => {
+      if (isPeopleSuggestionRegion(region, keywords)) {
+        const container = findPeopleSuggestionContainer(
+          region,
+          mainContent,
+          keywords
+        );
+
+        if (container) {
+          queueRemoval(
+            container,
+            normalizeText(region.getAttribute('aria-label')),
+            'button'
+          );
         }
+        return;
+      }
 
-        isProcessingBatch = false;
+      if (!isReelRegion(region, keywords)) {
+        return;
+      }
 
-        // 如果還有待處理的元素，繼續處理
-        if (pendingRemovals.length > 0) {
-          setTimeout(processBatchRemovals, 200);
-        }
-      }, 100);
+      const container = findReelContainer(region, mainContent, keywords);
+
+      if (container) {
+        queueRemoval(container, normalizeText(region.getAttribute('aria-label')) || 'Reel region', 'reels');
+      }
     });
   }
 
@@ -432,21 +807,29 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
    * 檢查並收集推薦內容（優化版本 v1.0.2）
    * 批次收集，統一處理，避免效能問題
    */
-  function removeRecommendations() {
+  function removeRecommendations(requestedRoots = null) {
     // 先找到主要內容區域
-    const mainContent = document.querySelector('div[role="main"]');
+    const mainContent = document.querySelector('[role="main"]');
 
     if (!mainContent) {
-      console.log('[FB Filter] 找不到主要內容區域 (role="main")');
+      if (DEBUG) console.log('[FB Filter] 找不到主要內容區域 (role="main")');
       return;
     }
 
+    const scanRoots = normalizeScanRoots(mainContent, requestedRoots);
+    if (scanRoots.length === 0) {
+      return;
+    }
+
+    const sponsoredContainerOptions = requestedRoots
+      ? { mainContent, maxDepth: 25, minimumScore: 4, allowUnscoredFallback: false }
+      : { mainContent, maxDepth: 25 };
+
     let debugCount = { found: 0, collected: 0, skipped: 0 };
     const keywords = getFilterKeywords();
-    const toRemove = []; // 收集要移除的元素
 
     // 新增：優先檢查 .html-div > span 中的「為你推薦」標記
-    const htmlDivElements = mainContent.querySelectorAll('.html-div > span');
+    const htmlDivElements = collectMatchingElements(mainContent, scanRoots, '.html-div > span');
 
     if (DEBUG) console.log(`[FB Filter] 找到 ${htmlDivElements.length} 個 .html-div > span 元素`);
 
@@ -473,71 +856,100 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
 
       if (isRecommended) {
         debugCount.found++;
-        processedElements.add(span);
-
         if (DEBUG) console.log(`[FB Filter] 發現推薦標記: 完全匹配 "${matchedKeyword}" in .html-div > span`);
 
-        // 向上尋找包含此推薦標記的貼文容器
-        let current = span;
-        let depth = 0;
-        const maxDepth = 20;
+        const container = findBestPostContainer(span, {
+          mainContent,
+          maxDepth: 20,
+          maxHeight: 3000,
+          minimumScore: 0,
+          allowUnscoredFallback: true
+        });
 
-        while (current && current.parentElement && depth < maxDepth) {
-          if (current.getAttribute && current.getAttribute('role') === 'main') {
-            break;
+        if (container) {
+          processedElements.add(span);
+
+          if (queueRemoval(container, matchedKeyword, 'button')) {
+            debugCount.collected++;
           }
+        }
+      }
+    });
 
-          // 尋找貼文容器（通常有一定的高度和寬度）
-          const rect = current.getBoundingClientRect();
-          const height = rect.height;
-          const width = rect.width;
+    // Facebook 的橫向推薦區塊需要從 region 提升到完整 section shell。
+    const sectionRegions = collectMatchingElements(mainContent, scanRoots, '[role="region"]');
 
-          // 貼文容器的典型尺寸範圍
-          if (height > 200 && height < 1500 && width > 300 && width < 700) {
-            if (!removedContainers.has(current)) {
-              removedContainers.add(current);
+    sectionRegions.forEach(region => {
+      if (processedElements.has(region)) {
+        return;
+      }
 
-              // 收集到待移除列表
-              toRemove.push({
-                element: current,
-                keyword: matchedKeyword,
-                category: 'button'  // 使用 'button' category 以顯示「已移除推薦內容」
-              });
-              debugCount.collected++;
+      let container = null;
+      let category = null;
+      let marker = normalizeText(region.getAttribute('aria-label'));
 
-              if (DEBUG) console.log(`[FB Filter] 標記移除容器 (高度: ${height}px, 寬度: ${width}px)`);
-              break;
-            }
-          }
+      if (isPeopleSuggestionRegion(region, keywords)) {
+        container = findPeopleSuggestionContainer(region, mainContent, keywords);
+        category = 'button';
+      } else if (isReelRegion(region, keywords)) {
+        container = findReelContainer(region, mainContent, keywords);
+        category = 'reels';
+        marker = marker || 'Reel region';
+      }
 
-          current = current.parentElement;
-          depth++;
+      if (container && category) {
+        processedElements.add(region);
+
+        if (queueRemoval(container, marker, category)) {
+          debugCount.found++;
+          debugCount.collected++;
+        }
+      }
+    });
+
+    // 廣告 attribution 與 t45.1600 素材在貼文標頭建立時就會出現，
+    // 比「贊助」字樣或 CTA 渲染完成更早。
+    const earlyAdMarkers = collectMatchingElements(
+      mainContent,
+      scanRoots,
+      HIGH_CONFIDENCE_AD_SELECTOR
+    );
+
+    earlyAdMarkers.forEach(marker => {
+      if (processedElements.has(marker)) {
+        return;
+      }
+
+      const container = findBestPostContainer(marker, sponsoredContainerOptions);
+      if (container) {
+        processedElements.add(marker);
+        debugCount.found++;
+
+        if (queueRemoval(container, 'early ad marker', 'sponsored')) {
+          debugCount.collected++;
         }
       }
     });
 
     // 優化策略：只搜尋可能包含推薦內容的按鈕
-    const buttonElements = mainContent.querySelectorAll('[role="button"]');
+    const buttonElements = collectMatchingElements(mainContent, scanRoots, '[role="button"]');
 
     if (DEBUG) console.log(`[FB Filter] 找到 ${buttonElements.length} 個按鈕`);
 
-    // 批次讀取所有佈局資訊（避免 layout thrashing）
+    // 先用文字快速排除無關按鈕，只有命中後才讀取祖先尺寸。
     const buttonInfos = Array.from(buttonElements).map(button => {
       if (processedElements.has(button)) {
         return null;
       }
 
-      const buttonText = button.textContent || '';
+      const buttonText = normalizeText(button.textContent);
       if (buttonText.length > 100) {
         return null;
       }
 
-      // 使用 getBoundingClientRect 一次性獲取所有尺寸
-      const rect = button.getBoundingClientRect();
       return {
         button,
-        text: buttonText,
-        rect
+        text: buttonText
       };
     }).filter(Boolean);
 
@@ -549,22 +961,33 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       let isTargetButton = false;
       let matchedKeyword = null;
 
+      // 新版廣告會直接顯示「贊助 · 出資者」，不一定提供 aria-label。
+      for (const keyword of (keywords.sponsored || [])) {
+        if (text === keyword || text.startsWith(`${keyword} `) || text.startsWith(`${keyword}·`)) {
+          isTargetButton = true;
+          matchedKeyword = { keyword, category: 'sponsored' };
+          break;
+        }
+      }
+
       // 檢查「追蹤」、「加入」按鈕
-      for (const keyword of [...(keywords.follow || []), ...(keywords.join || [])]) {
-        if (text.includes(keyword)) {
-          // 確認不是「追蹤中」、「已加入」等
-          let isExcluded = false;
-          for (const exclude of (keywords.exclude || [])) {
-            if (text.includes(exclude)) {
-              isExcluded = true;
+      if (!isTargetButton) {
+        for (const keyword of [...(keywords.follow || []), ...(keywords.join || [])]) {
+          if (text.includes(keyword)) {
+            // 確認不是「追蹤中」、「已加入」等
+            let isExcluded = false;
+            for (const exclude of (keywords.exclude || [])) {
+              if (text.includes(exclude)) {
+                isExcluded = true;
+                break;
+              }
+            }
+
+            if (!isExcluded) {
+              isTargetButton = true;
+              matchedKeyword = { keyword, category: 'button' };
               break;
             }
-          }
-
-          if (!isExcluded) {
-            isTargetButton = true;
-            matchedKeyword = { keyword, category: 'button' };
-            break;
           }
         }
       }
@@ -583,46 +1006,36 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       // 如果找到目標按鈕，收集容器資訊
       if (isTargetButton && matchedKeyword) {
         debugCount.found++;
-        processedElements.add(button);
 
-        // 向上尋找貼文容器（使用快取的尺寸資訊）
-        let current = button;
-        let depth = 0;
-        const maxDepth = 15;
+        const container = findBestPostContainer(
+          button,
+          matchedKeyword.category === 'sponsored'
+            ? { ...sponsoredContainerOptions, maxHeight: 3000 }
+            : {
+                mainContent,
+                maxDepth: 20,
+                maxHeight: 3000,
+                minimumScore: 0,
+                allowUnscoredFallback: true
+              }
+        );
 
-        while (current && current.parentElement && depth < maxDepth) {
-          if (current.getAttribute && current.getAttribute('role') === 'main') {
-            break;
+        if (container) {
+          processedElements.add(button);
+
+          if (queueRemoval(container, matchedKeyword.keyword, matchedKeyword.category)) {
+            debugCount.collected++;
           }
-
-          // 使用快取的尺寸或 getBoundingClientRect（避免 offsetHeight/offsetWidth）
-          const rect = current.getBoundingClientRect();
-          const height = rect.height;
-          const width = rect.width;
-
-          if (height > 200 && height < 1200 && width > 300 && width < 700) {
-            if (!removedContainers.has(current)) {
-              removedContainers.add(current);
-
-              // 收集到待移除列表
-              toRemove.push({
-                element: current,
-                keyword: matchedKeyword.keyword,
-                category: matchedKeyword.category
-              });
-              debugCount.collected++;
-              break;
-            }
-          }
-
-          current = current.parentElement;
-          depth++;
         }
       }
     });
 
     // 處理贊助內容（也使用批次處理）
-    const sponsoredElements = mainContent.querySelectorAll('span[aria-label], a[aria-label], [aria-labelledby]');
+    const sponsoredElements = collectMatchingElements(
+      mainContent,
+      scanRoots,
+      'span[aria-label], a[aria-label], [aria-labelledby]'
+    );
 
     sponsoredElements.forEach(element => {
       if (processedElements.has(element)) {
@@ -644,26 +1057,25 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
 
       if (isSponsored) {
         debugCount.found++;
-        processedElements.add(element);
+        const container = findBestPostContainer(element, sponsoredContainerOptions);
 
-        const container = findBestPostContainer(element, { maxDepth: 25 });
+        if (container) {
+          processedElements.add(element);
 
-        if (container && !removedContainers.has(container)) {
-          removedContainers.add(container);
-
-          toRemove.push({
-            element: container,
-            keyword: matchedKeyword || 'Sponsored',
-            category: 'sponsored'
-          });
-          debugCount.collected++;
+          if (queueRemoval(container, matchedKeyword || 'Sponsored', 'sponsored')) {
+            debugCount.collected++;
+          }
         }
       }
     });
 
     // 後備規則：部分贊助貼文不再暴露可解析的「贊助」文字
     // 但 CTA 區塊的 data-ad-rendering-role 目前仍是廣告專屬結構
-    const sponsoredCtaElements = mainContent.querySelectorAll('[data-ad-rendering-role^="cta"]');
+    const sponsoredCtaElements = collectMatchingElements(
+      mainContent,
+      scanRoots,
+      '[data-ad-rendering-role^="cta"]'
+    );
 
     sponsoredCtaElements.forEach(element => {
       if (processedElements.has(element)) {
@@ -671,90 +1083,156 @@ if (DEBUG) console.log('[FB Filter] Facebook Feed Filter started - DEBUG MODE ON
       }
 
       debugCount.found++;
-      processedElements.add(element);
+      const container = findBestPostContainer(element, sponsoredContainerOptions);
 
-      const container = findBestPostContainer(element, { maxDepth: 25 });
+      if (container) {
+        processedElements.add(element);
 
-      if (container && !removedContainers.has(container)) {
-        removedContainers.add(container);
-
-        toRemove.push({
-          element: container,
-          keyword: 'CTA fallback',
-          category: 'sponsored'
-        });
-        debugCount.collected++;
+        if (queueRemoval(container, 'CTA fallback', 'sponsored')) {
+          debugCount.collected++;
+        }
       }
     });
-
-    // 批次處理收集到的元素
-    if (toRemove.length > 0) {
-      console.log(`[FB Filter] 收集到 ${toRemove.length} 個待移除元素，開始批次處理...`);
-
-      // 添加到待處理佇列
-      pendingRemovals.push(...toRemove);
-
-      // 觸發批次處理
-      processBatchRemovals();
-    }
 
     if (DEBUG && debugCount.found > 0) {
       console.log(`[FB Filter] 本次掃描統計:`, debugCount);
     }
   }
 
-  // 防抖計時器
-  let debounceTimer = null;
+  const pendingScanRoots = new Set();
+  let scanScheduled = false;
+  let fullScanPending = false;
   let isProcessing = false;
 
-  /**
-   * 防抖執行函數
-   * 避免過度頻繁執行造成效能問題
-   */
-  function debouncedRemoveRecommendations() {
-    // 如果正在批次處理中，跳過
-    if (isProcessing || isProcessingBatch) {
+  function enqueueMicrotask(callback) {
+    if (typeof queueMicrotask === 'function') {
+      queueMicrotask(callback);
       return;
     }
 
-    // 清除之前的計時器
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
-    }
-
-    // 設定新的防抖計時器（增加到 1000ms）
-    debounceTimer = setTimeout(() => {
-      isProcessing = true;
-      removeRecommendations();
-      isProcessing = false;
-      debounceTimer = null;
-    }, 1000); // 1000ms 防抖延遲（從 500ms 增加）
+    Promise.resolve().then(callback);
   }
 
-  // 延遲執行，等待頁面載入
-  setTimeout(() => {
-    removeRecommendations();
-  }, 3000);
+  /**
+  * 收集局部掃描根節點。擴充套件自己的 placeholder 不需要再次掃描。
+  */
+  function enqueueScanRoot(node) {
+    const element = node && node.nodeType === 1
+      ? node
+      : node && node.parentElement;
 
-  // 定期掃描新載入的內容（降低頻率）
-  setInterval(() => {
-    if (!isProcessing) {
-      removeRecommendations();
+    if (!element || !element.isConnected) {
+      return false;
     }
-  }, 10000); // 改為每 10 秒執行一次
+
+    if (
+      element.matches('.fb-filter-removed, .fb-filter-pending') ||
+      element.closest('.fb-filter-removed, .fb-filter-pending')
+    ) {
+      return false;
+    }
+
+    pendingScanRoots.add(element);
+    return true;
+  }
+
+  /**
+   * MutationObserver 已經會批次傳入變更，改用 microtask 合併重複掃描。
+   * 這會在瀏覽器下一次繪製前執行，不額外等待計時器。
+   */
+  function scheduleScan({ fullScan = false } = {}) {
+    if (fullScan) {
+      fullScanPending = true;
+    }
+
+    if (scanScheduled) {
+      return;
+    }
+
+    scanScheduled = true;
+    enqueueMicrotask(flushScheduledScan);
+  }
+
+  function flushScheduledScan() {
+    scanScheduled = false;
+
+    if (isProcessing) {
+      scheduleScan();
+      return;
+    }
+
+    const shouldScanAll = fullScanPending;
+    const roots = Array.from(pendingScanRoots);
+    fullScanPending = false;
+    pendingScanRoots.clear();
+
+    if (!shouldScanAll && roots.length === 0) {
+      return;
+    }
+
+    isProcessing = true;
+
+    try {
+      removeRecommendations(shouldScanAll ? null : roots);
+    } finally {
+      isProcessing = false;
+    }
+
+    if (fullScanPending || pendingScanRoots.size > 0) {
+      scheduleScan();
+    }
+  }
+
+  // 立即安排首輪掃描；頁面尚未建立時，後續 DOM 通知會自動補掃。
+  scheduleScan({ fullScan: true });
+
+  // 保留低頻完整掃描，作為 Facebook 特殊更新方式的安全網。
+  setInterval(() => {
+    scheduleScan({ fullScan: true });
+  }, 10000);
 
   // 監聽 DOM 變化（Facebook 動態載入內容）
-  const observer = new MutationObserver(() => {
-    // 使用防抖函數，避免過度觸發
-    debouncedRemoveRecommendations();
+  const observer = new MutationObserver(mutations => {
+    let hasQueuedRoot = false;
+    const immediateRoots = new Set();
+
+    mutations.forEach(mutation => {
+      if (mutation.type === 'attributes' || mutation.type === 'characterData') {
+        if (enqueueScanRoot(mutation.target)) {
+          hasQueuedRoot = true;
+          immediateRoots.add(mutation.target);
+        }
+        return;
+      }
+
+      mutation.addedNodes.forEach(node => {
+        const scanNode = node.nodeType === 1 ? node : mutation.target;
+        if (enqueueScanRoot(scanNode)) {
+          hasQueuedRoot = true;
+          immediateRoots.add(scanNode);
+        }
+      });
+    });
+
+    if (hasQueuedRoot) {
+      runImmediateFilters(Array.from(immediateRoots));
+      scheduleScan();
+    }
   });
 
-  // 設置全域引用，供批次處理使用
-  observerRef = observer;
-
-  observer.observe(document.body, {
+  observer.observe(document, {
     childList: true,
-    subtree: true
+    subtree: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: [
+      'aria-label',
+      'aria-labelledby',
+      'attributionsrc',
+      'data-ad-rendering-role',
+      'role',
+      'src'
+    ]
   });
 
   // 顯示狀態與語言資訊

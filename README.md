@@ -2,7 +2,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Firefox Add-on](https://img.shields.io/badge/Firefox-Add--on-orange.svg)](https://addons.mozilla.org/firefox/addon/facebook-feed-filter/)
-![Version](https://img.shields.io/badge/version-1.0.4-green.svg)
+![Version](https://img.shields.io/badge/version-1.0.5-green.svg)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/Mowd/facebook-feed-filter/graphs/commit-activity)
 
 A lightweight Firefox extension that removes sponsored posts, suggested content, and Reels from your Facebook feed, leaving only posts from friends and pages you follow.
@@ -13,7 +13,7 @@ A lightweight Firefox extension that removes sponsored posts, suggested content,
 - **Filter Suggestions**: Removes suggested posts from pages and people you don't follow
 - **Hide Reels**: Filters out Reels and short video content
 - **Real-time Filtering**: Uses MutationObserver to catch dynamically loaded content
-- **Performance Optimized**: Implements debouncing to minimize impact on browsing speed
+- **Performance Optimized**: Uses localized microtask scans and pre-paint CSS guards
 - **Privacy Focused**: All processing happens locally, no data collection
 - **Multi-language Support**: Currently supports 8 languages
 
@@ -68,7 +68,7 @@ cd facebook-feed-filter
 The extension uses content scripts to:
 1. Monitor DOM changes using MutationObserver
 2. Identify sponsored/suggested content through text matching
-3. Find the parent article container and hide it
+3. Find the complete feed unit or section container and hide it
 4. Display a placeholder showing what was filtered
 
 ### File Structure
@@ -86,9 +86,11 @@ facebook-feed-filter/
 
 ### Performance Optimizations
 
-- **Debouncing**: Processes changes in batches every 500ms
+- **Immediate Processing**: Handles relevant DOM mutations in a microtask before the next paint
+- **Localized Scanning**: Scans only affected feed units instead of the entire document
 - **WeakSet Tracking**: Prevents reprocessing of already filtered elements
-- **Selective Scanning**: Only processes new elements added to the DOM
+- **CSS Guards**: Hides high-confidence sponsored and Reel layouts while JavaScript resolves their full container
+- **Fallback Scanning**: Uses a low-frequency full scan for Facebook updates that bypass normal mutation paths
 
 ## 🤝 Contributing
 
@@ -138,6 +140,13 @@ See [PRIVACY_POLICY.md](PRIVACY_POLICY.md) for full details.
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ## 🔄 Changelog
+
+### Version 1.0.5
+- Reduced visible filtering delay with localized mutation processing from `document_start`
+- Added pre-paint CSS guards for high-confidence sponsored posts and Reel layouts
+- Updated Reel detection for Facebook's current singular `Reel` regions and complete section removal
+- Fixed "People You May Know" cards leaving their header and outer shell behind
+- Improved full feed-unit selection for sponsored posts and recommended public-group posts
 
 ### Version 1.0.4
 - **Improved Sponsored Post Detection**: Added support for hidden sponsored labels referenced through `aria-labelledby`
