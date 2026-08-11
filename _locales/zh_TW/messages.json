@@ -10,5 +10,26 @@
   "filterMessage": {
     "message": "內容已過濾",
     "description": "過濾內容時顯示的訊息"
+  },
+  "popupTitle": {
+    "message": "動態過濾器"
+  },
+  "popupSubtitle": {
+    "message": "讓 Facebook 首頁更清爽"
+  },
+  "popupToggleLabel": {
+    "message": "首頁動態過濾"
+  },
+  "popupStatusEnabled": {
+    "message": "已啟用"
+  },
+  "popupStatusPaused": {
+    "message": "已暫停"
+  },
+  "popupScope": {
+    "message": "僅在 facebook.com/ 首頁運作"
+  },
+  "popupError": {
+    "message": "無法儲存設定"
   }
 }

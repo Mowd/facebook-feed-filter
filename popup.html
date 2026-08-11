@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Facebook Feed Filter</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="panel">
+    <header class="brand">
+      <img class="brand-icon" src="icons/icon-48.svg" alt="">
+      <div>
+        <h1 data-i18n="popupTitle">Feed Filter</h1>
+        <p data-i18n="popupSubtitle">A quieter Facebook home feed</p>
+      </div>
+    </header>
+
+    <section class="control" aria-labelledby="filter-label">
+      <div class="control-copy">
+        <h2 id="filter-label" data-i18n="popupToggleLabel">Home feed filtering</h2>
+        <p id="filter-status" class="status" aria-live="polite">Loading...</p>
+      </div>
+
+      <label class="switch">
+        <input id="filter-toggle" type="checkbox" aria-labelledby="filter-label" aria-describedby="filter-status">
+        <span class="switch-track" aria-hidden="true">
+          <span class="switch-thumb"></span>
+        </span>
+      </label>
+    </section>
+
+    <footer class="scope-note">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+        <path d="M3 11.2 12 4l9 7.2v8.3a.5.5 0 0 1-.5.5H15v-6H9v6H3.5a.5.5 0 0 1-.5-.5v-8.3Z"></path>
+      </svg>
+      <span data-i18n="popupScope">Only runs on facebook.com/</span>
+    </footer>
+  </main>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 
 ## Facebook Feed Filter
 
-**Last updated: 2024**
+**Last updated: August 12, 2026**
 
 ### Data Collection
 This extension does NOT collect, store, or transmit any personal data.
@@ -15,11 +15,13 @@ This extension does NOT collect, store, or transmit any personal data.
 
 ### Permissions Used
 - **Access to facebook.com**: Required to detect and remove recommended content from your Facebook feed
+- **Storage**: Required to remember whether filtering is enabled or paused
 
 ### Data Storage
 - The extension uses browser's local memory (WeakSet) to track processed elements
 - This data is temporary and cleared when you close the tab
-- No persistent storage is used
+- The enabled/paused preference is stored locally in the browser
+- No Facebook content, browsing history, or personal data is stored
 
 ### Third Parties
 This extension does not share any data with third parties.

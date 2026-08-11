@@ -8,7 +8,7 @@ echo "📦 開始打包 Firefox Add-on..."
 mkdir -p build
 
 # 複製必要檔案
-cp -r manifest.json content.js styles.css icons _locales build/
+cp -r manifest.json content.js styles.css popup.html popup.css popup.js icons _locales build/
 
 # 進入 build 目錄
 cd build

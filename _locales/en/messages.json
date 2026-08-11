@@ -10,5 +10,26 @@
   "filterMessage": {
     "message": "Content filtered",
     "description": "Message shown when content is filtered"
+  },
+  "popupTitle": {
+    "message": "Feed Filter"
+  },
+  "popupSubtitle": {
+    "message": "A quieter Facebook home feed"
+  },
+  "popupToggleLabel": {
+    "message": "Home feed filtering"
+  },
+  "popupStatusEnabled": {
+    "message": "Enabled"
+  },
+  "popupStatusPaused": {
+    "message": "Paused"
+  },
+  "popupScope": {
+    "message": "Only runs on facebook.com/"
+  },
+  "popupError": {
+    "message": "Could not save the setting"
   }
 }

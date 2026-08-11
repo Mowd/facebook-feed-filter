@@ -10,5 +10,26 @@
   "filterMessage": {
     "message": "Contenu filtré",
     "description": "Message affiché lors du filtrage"
+  },
+  "popupTitle": {
+    "message": "Filtre du fil"
+  },
+  "popupSubtitle": {
+    "message": "Un accueil Facebook plus calme"
+  },
+  "popupToggleLabel": {
+    "message": "Filtrage du fil d'accueil"
+  },
+  "popupStatusEnabled": {
+    "message": "Activé"
+  },
+  "popupStatusPaused": {
+    "message": "En pause"
+  },
+  "popupScope": {
+    "message": "Fonctionne uniquement sur facebook.com/"
+  },
+  "popupError": {
+    "message": "Impossible d'enregistrer le réglage"
   }
 }

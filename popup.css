@@ -1,0 +1,157 @@
+:root {
+  color-scheme: light;
+  --ink: #14213d;
+  --muted: #64748b;
+  --line: #dbe4f0;
+  --paper: #f8fbff;
+  --accent: #1769e0;
+  --accent-deep: #0d4fb8;
+  --paused: #8793a5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-width: 320px;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(23, 105, 224, 0.13), transparent 42%),
+    var(--paper);
+  color: var(--ink);
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+}
+
+.panel {
+  padding: 18px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 17px;
+}
+
+.brand-icon {
+  width: 38px;
+  height: 38px;
+  filter: drop-shadow(0 5px 8px rgba(20, 33, 61, 0.16));
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 17px;
+  line-height: 1.2;
+  letter-spacing: -0.2px;
+}
+
+.brand p {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 8px 22px rgba(20, 33, 61, 0.07);
+}
+
+.control-copy {
+  min-width: 0;
+}
+
+h2 {
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.status {
+  margin-top: 5px;
+  color: var(--accent-deep);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+html[data-enabled="false"] .status {
+  color: var(--paused);
+}
+
+.switch {
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.switch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.switch-track {
+  display: block;
+  width: 48px;
+  height: 28px;
+  padding: 3px;
+  background: #a6b0bf;
+  border-radius: 999px;
+  transition: background 160ms ease;
+}
+
+.switch-thumb {
+  display: block;
+  width: 22px;
+  height: 22px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(20, 33, 61, 0.3);
+  transition: transform 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.switch input:checked + .switch-track {
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+}
+
+.switch input:checked + .switch-track .switch-thumb {
+  transform: translateX(20px);
+}
+
+.switch input:focus-visible + .switch-track {
+  outline: 3px solid rgba(23, 105, 224, 0.25);
+  outline-offset: 3px;
+}
+
+.switch input:disabled + .switch-track {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.scope-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 13px;
+  padding: 0 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.scope-note svg {
+  flex: 0 0 auto;
+  fill: currentColor;
+}

@@ -10,5 +10,26 @@
   "filterMessage": {
     "message": "Inhalt gefiltert",
     "description": "Nachricht beim Filtern"
+  },
+  "popupTitle": {
+    "message": "Feed-Filter"
+  },
+  "popupSubtitle": {
+    "message": "Ein ruhigerer Facebook-Startseitenfeed"
+  },
+  "popupToggleLabel": {
+    "message": "Startseitenfeed filtern"
+  },
+  "popupStatusEnabled": {
+    "message": "Aktiviert"
+  },
+  "popupStatusPaused": {
+    "message": "Pausiert"
+  },
+  "popupScope": {
+    "message": "Läuft nur auf facebook.com/"
+  },
+  "popupError": {
+    "message": "Einstellung konnte nicht gespeichert werden"
   }
 }

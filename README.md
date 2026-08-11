@@ -2,7 +2,7 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Firefox Add-on](https://img.shields.io/badge/Firefox-Add--on-orange.svg)](https://addons.mozilla.org/firefox/addon/facebook-feed-filter/)
-![Version](https://img.shields.io/badge/version-1.0.5-green.svg)
+![Version](https://img.shields.io/badge/version-1.0.6-green.svg)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/Mowd/facebook-feed-filter/graphs/commit-activity)
 
 A lightweight Firefox extension that removes sponsored posts, suggested content, and Reels from your Facebook feed, leaving only posts from friends and pages you follow.
@@ -12,6 +12,8 @@ A lightweight Firefox extension that removes sponsored posts, suggested content,
 - **Remove Sponsored Content**: Automatically detects and hides sponsored posts
 - **Filter Suggestions**: Removes suggested posts from pages and people you don't follow
 - **Hide Reels**: Filters out Reels and short video content
+- **Temporary Pause**: Use the toolbar popup to pause or resume filtering at any time
+- **Homepage Only**: Filtering is limited to the Facebook home feed (`/`)
 - **Real-time Filtering**: Uses MutationObserver to catch dynamically loaded content
 - **Performance Optimized**: Uses localized microtask scans and pre-paint CSS guards
 - **Privacy Focused**: All processing happens locally, no data collection
@@ -57,9 +59,10 @@ cd facebook-feed-filter
 ## 🚀 Usage
 
 1. Once installed, navigate to [Facebook](https://www.facebook.com)
-2. The extension runs automatically - no configuration needed
-3. Filtered content will be replaced with a subtle placeholder
-4. Check the browser console for detailed filtering logs (optional)
+2. The extension runs automatically on the Facebook homepage
+3. Click the toolbar icon to temporarily pause or resume filtering
+4. Filtered content will be replaced with a subtle placeholder
+5. Check the browser console for detailed filtering logs (optional)
 
 ## 🛠️ Technical Details
 
@@ -78,6 +81,9 @@ facebook-feed-filter/
 ├── manifest.json         # Extension configuration
 ├── content.js           # Main content script
 ├── styles.css          # Styling for placeholders
+├── popup.html          # Toolbar popup
+├── popup.css           # Popup styling
+├── popup.js            # Enable/disable setting
 ├── icons/              # Extension icons
 ├── _locales/           # Internationalization files
 ├── PRIVACY_POLICY.md   # Privacy policy
@@ -140,6 +146,13 @@ See [PRIVACY_POLICY.md](PRIVACY_POLICY.md) for full details.
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ## 🔄 Changelog
+
+### Version 1.0.6
+- Added a toolbar popup to temporarily pause or resume filtering
+- Limited filtering to the Facebook homepage (`/`)
+- Added SPA route tracking so filtering stops immediately on groups, pages, and profiles
+- Restores content already filtered in the current tab when filtering is paused
+- Added localized popup text for all 8 supported languages
 
 ### Version 1.0.5
 - Reduced visible filtering delay with localized mutation processing from `document_start`

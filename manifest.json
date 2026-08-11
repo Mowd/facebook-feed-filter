@@ -2,13 +2,22 @@
   "manifest_version": 2,
   "name": "Facebook Feed Filter - Remove Recommendations",
   "short_name": "FB Feed Filter",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Remove sponsored posts, suggested content and Reels from Facebook feed. Keep only friends' posts.",
   "default_locale": "en",
 
   "icons": {
     "48": "icons/icon-48.svg",
     "96": "icons/icon-96.svg"
+  },
+
+  "browser_action": {
+    "default_icon": {
+      "48": "icons/icon-48.svg",
+      "96": "icons/icon-96.svg"
+    },
+    "default_title": "Facebook Feed Filter",
+    "default_popup": "popup.html"
   },
 
   "content_scripts": [
@@ -21,6 +30,7 @@
   ],
 
   "permissions": [
+    "storage",
     "*://*.facebook.com/*"
   ],
 

@@ -10,5 +10,26 @@
   "filterMessage": {
     "message": "콘텐츠가 필터링되었습니다",
     "description": "필터링 시 표시되는 메시지"
+  },
+  "popupTitle": {
+    "message": "피드 필터"
+  },
+  "popupSubtitle": {
+    "message": "더 깔끔한 Facebook 홈 피드"
+  },
+  "popupToggleLabel": {
+    "message": "홈 피드 필터링"
+  },
+  "popupStatusEnabled": {
+    "message": "사용 중"
+  },
+  "popupStatusPaused": {
+    "message": "일시 중지"
+  },
+  "popupScope": {
+    "message": "facebook.com/ 홈에서만 작동합니다"
+  },
+  "popupError": {
+    "message": "설정을 저장할 수 없습니다"
   }
 }

@@ -10,5 +10,26 @@
   "filterMessage": {
     "message": "内容已过滤",
     "description": "过滤内容时显示的消息"
+  },
+  "popupTitle": {
+    "message": "动态过滤器"
+  },
+  "popupSubtitle": {
+    "message": "让 Facebook 首页更清爽"
+  },
+  "popupToggleLabel": {
+    "message": "首页动态过滤"
+  },
+  "popupStatusEnabled": {
+    "message": "已启用"
+  },
+  "popupStatusPaused": {
+    "message": "已暂停"
+  },
+  "popupScope": {
+    "message": "仅在 facebook.com/ 首页运行"
+  },
+  "popupError": {
+    "message": "无法保存设置"
   }
 }

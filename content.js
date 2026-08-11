@@ -1,6 +1,12 @@
 /**
- * Facebook Feed Filter v1.0.5
+ * Facebook Feed Filter v1.0.6
  * 精準移除 Facebook 推薦內容、贊助貼文和 Reels
+ *
+ * 更新內容 (v1.0.6):
+ * - 新增工具列 popup，可暫停或恢復首頁過濾
+ * - 僅在 Facebook 首頁路徑 / 執行過濾
+ * - 支援 SPA 路由切換，離開首頁時立即停止
+ * - 關閉過濾時還原目前頁面已移除的內容
  *
  * 更新內容 (v1.0.5):
  * - 改用區域化 microtask 掃描，降低動態貼文的移除延遲
@@ -31,7 +37,13 @@
 (function() {
   'use strict';
 
-  const BUILD_ID = '1.0.5';
+  const BUILD_ID = '1.0.6';
+  const FILTER_ENABLED_KEY = 'filterEnabled';
+
+  let settingsLoaded = false;
+  let extensionEnabled = true;
+  let filteringActive = false;
+  let lastKnownUrl = window.location.href;
 
   // Debug mode - 可以設為 true 來查看詳細的過濾決策
   const DEBUG = false;
@@ -44,8 +56,8 @@
   console.log(`[FB Filter] 初始化中... build ${BUILD_ID}`);
 
   // 已處理的元素和容器
-  const processedElements = new WeakSet();
-  const removedContainers = new WeakSet();
+  let processedElements = new WeakSet();
+  let removedContainers = new WeakSet();
   let removedCount = 0;
 
   // 按語言組織的關鍵字配置
@@ -169,7 +181,7 @@
   // 偵測 Facebook 使用的語言
   function detectFacebookLanguage() {
     // 方法 1: 檢查 html lang 屬性
-    const htmlLang = document.documentElement.lang;
+    const htmlLang = document.documentElement ? document.documentElement.lang : '';
 
     // 方法 2: 檢查 Facebook 的語言設定（通常在 meta 標籤中）
     const metaLocale = document.querySelector('meta[property="og:locale"]');
@@ -647,12 +659,59 @@
   // 批次處理佇列
   let pendingRemovals = [];
   let isProcessingBatch = false;
+  const removedContentByPlaceholder = new WeakMap();
+
+  function restorePendingStyles(item, releaseContainer = false) {
+    if (!item || !item.element) {
+      return;
+    }
+
+    item.element.classList.remove('fb-filter-pending');
+    item.element.style.visibility = item.previousVisibility;
+    item.element.style.pointerEvents = item.previousPointerEvents;
+
+    if (releaseContainer) {
+      removedContainers.delete(item.element);
+    }
+  }
+
+  function restoreRemovedContent() {
+    pendingRemovals.forEach(item => restorePendingStyles(item, true));
+    pendingRemovals = [];
+
+    document.querySelectorAll('.fb-filter-pending').forEach(element => {
+      element.classList.remove('fb-filter-pending');
+      element.style.visibility = '';
+      element.style.pointerEvents = '';
+      removedContainers.delete(element);
+    });
+
+    document.querySelectorAll('.fb-filter-removed').forEach(placeholder => {
+      const originalContent = removedContentByPlaceholder.get(placeholder);
+
+      if (!originalContent || !placeholder.parentElement) {
+        return;
+      }
+
+      removedContainers.delete(originalContent);
+
+      try {
+        placeholder.parentElement.replaceChild(originalContent, placeholder);
+      } catch (error) {
+        // Facebook 可能已在路由切換時移除 placeholder。
+      }
+    });
+
+    processedElements = new WeakSet();
+    removedContainers = new WeakSet();
+  }
 
   /**
    * 偵測成功時立即隱藏，DOM 替換則留到下一個 animation frame。
    */
   function queueRemoval(element, keyword, category) {
     if (
+      !filteringActive ||
       !element ||
       !element.parentElement ||
       removedContainers.has(element) ||
@@ -667,12 +726,21 @@
       return false;
     }
 
+    const previousVisibility = element.style.visibility;
+    const previousPointerEvents = element.style.pointerEvents;
+
     removedContainers.add(element);
     element.classList.add('fb-filter-pending');
     element.style.visibility = 'hidden';
     element.style.pointerEvents = 'none';
 
-    pendingRemovals.push({ element, keyword, category });
+    pendingRemovals.push({
+      element,
+      keyword,
+      category,
+      previousVisibility,
+      previousPointerEvents
+    });
     processBatchRemovals();
     return true;
   }
@@ -691,38 +759,45 @@
 
     // 使用 requestAnimationFrame 確保在適當時機執行
     requestAnimationFrame(() => {
-      const keywords = getFilterKeywords();
+      const keywords = filteringActive ? getFilterKeywords() : null;
 
       batch.forEach(item => {
-        if (item.element && item.element.parentElement) {
-          // 創建 placeholder 並顯示提示文字
-          const placeholder = document.createElement('div');
-          placeholder.className = 'fb-filter-removed';
+        if (!filteringActive || !item.element || !item.element.parentElement) {
+          restorePendingStyles(item, true);
+          return;
+        }
 
-          const removedText = (keywords.removedText && keywords.removedText[item.category]) ||
-                             `Removed ${item.category}`;
-          placeholder.textContent = removedText;
-          placeholder.style.cssText = `
-            color: #8a8d91;
-            font-size: 14px;
-            padding: 8px;
-            text-align: center;
-            font-family: system-ui, -apple-system, sans-serif;
-          `;
+        // 創建 placeholder 並顯示提示文字
+        const placeholder = document.createElement('div');
+        placeholder.className = 'fb-filter-removed';
 
-          try {
-            item.element.parentElement.replaceChild(placeholder, item.element);
-            removedCount++;
-            console.log(`[FB Filter] 已移除 ${item.category} #${removedCount}: ${item.keyword}`);
-          } catch (e) {
-            // 元素可能已被移除，忽略錯誤
-          }
+        const removedText = (keywords.removedText && keywords.removedText[item.category]) ||
+                           `Removed ${item.category}`;
+        placeholder.textContent = removedText;
+        placeholder.style.cssText = `
+          color: #8a8d91;
+          font-size: 14px;
+          padding: 8px;
+          text-align: center;
+          font-family: system-ui, -apple-system, sans-serif;
+        `;
+
+        restorePendingStyles(item);
+
+        try {
+          removedContentByPlaceholder.set(placeholder, item.element);
+          item.element.parentElement.replaceChild(placeholder, item.element);
+          removedCount++;
+          console.log(`[FB Filter] 已移除 ${item.category} #${removedCount}: ${item.keyword}`);
+        } catch (e) {
+          removedContainers.delete(item.element);
+          // 元素可能已被移除，忽略錯誤
         }
       });
 
       isProcessingBatch = false;
 
-      if (pendingRemovals.length > 0) {
+      if (filteringActive && pendingRemovals.length > 0) {
         processBatchRemovals();
       }
     });
@@ -733,6 +808,10 @@
    * 讓廣告與 Reel 在瀏覽器下一次繪製前就被隱藏。
    */
   function runImmediateFilters(requestedRoots) {
+    if (!filteringActive) {
+      return;
+    }
+
     const mainContent = document.querySelector('[role="main"]');
     if (!mainContent || !requestedRoots || requestedRoots.length === 0) {
       return;
@@ -808,6 +887,10 @@
    * 批次收集，統一處理，避免效能問題
    */
   function removeRecommendations(requestedRoots = null) {
+    if (!filteringActive) {
+      return;
+    }
+
     // 先找到主要內容區域
     const mainContent = document.querySelector('[role="main"]');
 
@@ -1117,6 +1200,10 @@
   * 收集局部掃描根節點。擴充套件自己的 placeholder 不需要再次掃描。
   */
   function enqueueScanRoot(node) {
+    if (!filteringActive) {
+      return false;
+    }
+
     const element = node && node.nodeType === 1
       ? node
       : node && node.parentElement;
@@ -1141,6 +1228,10 @@
    * 這會在瀏覽器下一次繪製前執行，不額外等待計時器。
    */
   function scheduleScan({ fullScan = false } = {}) {
+    if (!filteringActive) {
+      return;
+    }
+
     if (fullScan) {
       fullScanPending = true;
     }
@@ -1155,6 +1246,12 @@
 
   function flushScheduledScan() {
     scanScheduled = false;
+
+    if (!filteringActive) {
+      pendingScanRoots.clear();
+      fullScanPending = false;
+      return;
+    }
 
     if (isProcessing) {
       scheduleScan();
@@ -1183,16 +1280,95 @@
     }
   }
 
-  // 立即安排首輪掃描；頁面尚未建立時，後續 DOM 通知會自動補掃。
-  scheduleScan({ fullScan: true });
+  function isFacebookHomePage() {
+    return window.location.pathname === '/';
+  }
+
+  function updateDocumentFilterState() {
+    const root = document.documentElement;
+    if (!root) {
+      return;
+    }
+
+    root.setAttribute('data-fb-feed-filter-build', BUILD_ID);
+
+    if (filteringActive) {
+      root.setAttribute('data-fb-feed-filter-active', 'true');
+    } else {
+      root.removeAttribute('data-fb-feed-filter-active');
+    }
+  }
+
+  function stopFiltering() {
+    pendingScanRoots.clear();
+    fullScanPending = false;
+    scanScheduled = false;
+    restoreRemovedContent();
+  }
+
+  function setFilteringActive(active) {
+    const changed = filteringActive !== active;
+    filteringActive = active;
+    updateDocumentFilterState();
+
+    if (!changed) {
+      return;
+    }
+
+    if (filteringActive) {
+      const detectedLang = detectFacebookLanguage();
+      console.log(`[FB Filter] 首頁過濾已啟用，語言: ${detectedLang}`);
+      scheduleScan({ fullScan: true });
+      return;
+    }
+
+    stopFiltering();
+    console.log('[FB Filter] 過濾已暫停或目前不在 Facebook 首頁');
+  }
+
+  function syncFilteringState() {
+    lastKnownUrl = window.location.href;
+    setFilteringActive(
+      settingsLoaded && extensionEnabled && isFacebookHomePage()
+    );
+  }
+
+  function applyEnabledSetting(enabled) {
+    settingsLoaded = true;
+    extensionEnabled = enabled;
+    syncFilteringState();
+  }
 
   // 保留低頻完整掃描，作為 Facebook 特殊更新方式的安全網。
   setInterval(() => {
-    scheduleScan({ fullScan: true });
+    if (filteringActive) {
+      scheduleScan({ fullScan: true });
+    }
   }, 10000);
+
+  // Facebook 是 SPA；pushState 不一定觸發 popstate，以短週期檢查作後備。
+  setInterval(() => {
+    if (window.location.href !== lastKnownUrl) {
+      syncFilteringState();
+    }
+  }, 250);
+
+  window.addEventListener('popstate', syncFilteringState);
+  window.addEventListener('hashchange', syncFilteringState);
 
   // 監聽 DOM 變化（Facebook 動態載入內容）
   const observer = new MutationObserver(mutations => {
+    if (window.location.href !== lastKnownUrl) {
+      syncFilteringState();
+    } else {
+      // document_start 執行時 html 可能尚未建立。
+      updateDocumentFilterState();
+    }
+
+    if (!filteringActive) {
+      return;
+    }
+
     let hasQueuedRoot = false;
     const immediateRoots = new Set();
 
@@ -1235,9 +1411,22 @@
     ]
   });
 
-  // 顯示狀態與語言資訊
-  const detectedLang = detectFacebookLanguage();
-  console.log(`[FB Filter] 監聽中... 偵測到語言: ${detectedLang}`);
-  console.log('[FB Filter] 將自動移除推薦內容');
+  browser.storage.onChanged.addListener((changes, areaName) => {
+    if (
+      areaName !== 'local' ||
+      !Object.prototype.hasOwnProperty.call(changes, FILTER_ENABLED_KEY)
+    ) {
+      return;
+    }
+
+    applyEnabledSetting(changes[FILTER_ENABLED_KEY].newValue !== false);
+  });
+
+  browser.storage.local.get({ [FILTER_ENABLED_KEY]: true }).then(settings => {
+    applyEnabledSetting(settings[FILTER_ENABLED_KEY] !== false);
+  }, error => {
+    console.warn('[FB Filter] 無法讀取設定，使用預設啟用狀態', error);
+    applyEnabledSetting(true);
+  });
 
 })();

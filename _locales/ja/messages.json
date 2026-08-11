@@ -10,5 +10,26 @@
   "filterMessage": {
     "message": "コンテンツがフィルタリングされました",
     "description": "フィルタリング時のメッセージ"
+  },
+  "popupTitle": {
+    "message": "フィードフィルター"
+  },
+  "popupSubtitle": {
+    "message": "Facebookホームをすっきり表示"
+  },
+  "popupToggleLabel": {
+    "message": "ホームフィードのフィルター"
+  },
+  "popupStatusEnabled": {
+    "message": "有効"
+  },
+  "popupStatusPaused": {
+    "message": "一時停止"
+  },
+  "popupScope": {
+    "message": "facebook.com/ のホームでのみ動作します"
+  },
+  "popupError": {
+    "message": "設定を保存できませんでした"
   }
 }

@@ -7,37 +7,37 @@
  * placeholder；這層 CSS 用來避免 Facebook 分段 hydration 造成內容閃現。
  */
 @supports selector(:has(*)) {
-  [role="main"] [role="feed"] > *:has(
+  html[data-fb-feed-filter-active="true"] [role="main"] [role="feed"] > *:has(
     [attributionsrc*="/privacy_sandbox/comet/register/source/"]
   ),
-  [role="main"] [role="feed"] > *:has([data-ad-rendering-role^="cta"]),
-  [role="main"] [role="feed"] > *:has(img[src*="/t45.1600-"]),
-  [role="main"] [role="feed"] > *:has([role="region"][aria-label="Reel" i]),
-  [role="main"] [role="feed"] > *:has([role="region"][aria-label="Reels" i]),
-  [role="main"] [role="feed"] > *:has([role="region"][aria-label="你可能認識的朋友"]),
-  [role="main"] [role="feed"] > *:has([role="region"][aria-label="你可能认识的人"]),
-  [role="main"] [role="feed"] > *:has([role="region"][aria-label="People You May Know" i]),
-  [role="main"] [role="feed"] > *:has([role="region"][aria-label="知り合いかも"]),
-  [role="main"] [role="feed"] > *:has([role="region"][aria-label="알 수도 있는 사람"]),
-  [role="main"] [role="feed"] > *:has([role="region"][aria-label="Vous connaissez peut-être" i]),
-  [role="main"] [role="feed"] > *:has([role="region"][aria-label="Personen, die du kennen könntest" i]),
-  [role="main"] [role="feed"] > *:has([role="region"][aria-label="Personas que quizá conozcas" i]) {
+  html[data-fb-feed-filter-active="true"] [role="main"] [role="feed"] > *:has([data-ad-rendering-role^="cta"]),
+  html[data-fb-feed-filter-active="true"] [role="main"] [role="feed"] > *:has(img[src*="/t45.1600-"]),
+  html[data-fb-feed-filter-active="true"] [role="main"] [role="feed"] > *:has([role="region"][aria-label="Reel" i]),
+  html[data-fb-feed-filter-active="true"] [role="main"] [role="feed"] > *:has([role="region"][aria-label="Reels" i]),
+  html[data-fb-feed-filter-active="true"] [role="main"] [role="feed"] > *:has([role="region"][aria-label="你可能認識的朋友"]),
+  html[data-fb-feed-filter-active="true"] [role="main"] [role="feed"] > *:has([role="region"][aria-label="你可能认识的人"]),
+  html[data-fb-feed-filter-active="true"] [role="main"] [role="feed"] > *:has([role="region"][aria-label="People You May Know" i]),
+  html[data-fb-feed-filter-active="true"] [role="main"] [role="feed"] > *:has([role="region"][aria-label="知り合いかも"]),
+  html[data-fb-feed-filter-active="true"] [role="main"] [role="feed"] > *:has([role="region"][aria-label="알 수도 있는 사람"]),
+  html[data-fb-feed-filter-active="true"] [role="main"] [role="feed"] > *:has([role="region"][aria-label="Vous connaissez peut-être" i]),
+  html[data-fb-feed-filter-active="true"] [role="main"] [role="feed"] > *:has([role="region"][aria-label="Personen, die du kennen könntest" i]),
+  html[data-fb-feed-filter-active="true"] [role="main"] [role="feed"] > *:has([role="region"][aria-label="Personas que quizá conozcas" i]) {
     display: none !important;
   }
 }
 
 /* 若 Reel 不在標準 role=feed 結構內，至少先隱藏輪播本體。 */
-[role="main"] [role="region"][aria-label="Reel" i],
-[role="main"] [role="region"][aria-label="Reels" i],
-[role="main"] [role="region"][aria-label="連續短片"],
-[role="main"] [role="region"][aria-label="连续短片"],
-[role="main"] [role="region"][aria-label="リール"],
-[role="main"] [role="region"][aria-label="릴스"] {
+html[data-fb-feed-filter-active="true"] [role="main"] [role="region"][aria-label="Reel" i],
+html[data-fb-feed-filter-active="true"] [role="main"] [role="region"][aria-label="Reels" i],
+html[data-fb-feed-filter-active="true"] [role="main"] [role="region"][aria-label="連續短片"],
+html[data-fb-feed-filter-active="true"] [role="main"] [role="region"][aria-label="连续短片"],
+html[data-fb-feed-filter-active="true"] [role="main"] [role="region"][aria-label="リール"],
+html[data-fb-feed-filter-active="true"] [role="main"] [role="region"][aria-label="릴스"] {
   display: none !important;
 }
 
 /* 偵測成功後先隱藏，避免等待 DOM 替換時閃過一幀。 */
-.fb-filter-pending {
+html[data-fb-feed-filter-active="true"] .fb-filter-pending {
   visibility: hidden !important;
   pointer-events: none !important;
 }

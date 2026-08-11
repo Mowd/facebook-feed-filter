@@ -10,5 +10,26 @@
   "filterMessage": {
     "message": "Contenido filtrado",
     "description": "Mensaje mostrado al filtrar"
+  },
+  "popupTitle": {
+    "message": "Filtro del feed"
+  },
+  "popupSubtitle": {
+    "message": "Un inicio de Facebook más tranquilo"
+  },
+  "popupToggleLabel": {
+    "message": "Filtrar el feed de inicio"
+  },
+  "popupStatusEnabled": {
+    "message": "Activado"
+  },
+  "popupStatusPaused": {
+    "message": "En pausa"
+  },
+  "popupScope": {
+    "message": "Solo funciona en facebook.com/"
+  },
+  "popupError": {
+    "message": "No se pudo guardar la configuración"
   }
 }
