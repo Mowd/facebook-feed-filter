@@ -1,6 +1,11 @@
 /**
- * Facebook Feed Filter v1.0.6
+ * Facebook Feed Filter v1.1.0
  * 精準移除 Facebook 推薦內容、贊助貼文和 Reels
+ *
+ * 更新內容 (v1.1.0):
+ * - 新增 Chrome Manifest V3 版本
+ * - Firefox 與 Chrome 共用同一份過濾核心、popup、樣式和語系
+ * - 新增跨瀏覽器 API 相容層與雙平台封裝驗證
  *
  * 更新內容 (v1.0.6):
  * - 新增工具列 popup，可暫停或恢復首頁過濾
@@ -37,7 +42,13 @@
 (function() {
   'use strict';
 
-  const BUILD_ID = '1.0.6';
+  const extensionApi = globalThis.FBFeedFilterExtensionApi;
+  if (!extensionApi) {
+    console.warn('[FB Filter] Extension API is unavailable');
+    return;
+  }
+
+  const BUILD_ID = '1.1.0';
   const FILTER_ENABLED_KEY = 'filterEnabled';
 
   let settingsLoaded = false;
@@ -1411,7 +1422,7 @@
     ]
   });
 
-  browser.storage.onChanged.addListener((changes, areaName) => {
+  extensionApi.storage.onChanged.addListener((changes, areaName) => {
     if (
       areaName !== 'local' ||
       !Object.prototype.hasOwnProperty.call(changes, FILTER_ENABLED_KEY)
@@ -1422,7 +1433,7 @@
     applyEnabledSetting(changes[FILTER_ENABLED_KEY].newValue !== false);
   });
 
-  browser.storage.local.get({ [FILTER_ENABLED_KEY]: true }).then(settings => {
+  extensionApi.storage.local.get({ [FILTER_ENABLED_KEY]: true }).then(settings => {
     applyEnabledSetting(settings[FILTER_ENABLED_KEY] !== false);
   }, error => {
     console.warn('[FB Filter] 無法讀取設定，使用預設啟用狀態', error);

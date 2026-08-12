@@ -1,19 +1,26 @@
 (function() {
   'use strict';
 
+  const extensionApi = globalThis.FBFeedFilterExtensionApi;
   const SETTING_KEY = 'filterEnabled';
   const toggle = document.getElementById('filter-toggle');
   const status = document.getElementById('filter-status');
 
+  if (!extensionApi) {
+    status.textContent = 'Extension API is unavailable';
+    toggle.disabled = true;
+    return;
+  }
+
   function getMessage(key, fallback) {
-    return browser.i18n.getMessage(key) || fallback;
+    return extensionApi.i18n.getMessage(key) || fallback;
   }
 
   function localizePage() {
-    document.documentElement.lang = browser.i18n.getUILanguage();
+    document.documentElement.lang = extensionApi.i18n.getUILanguage();
 
     document.querySelectorAll('[data-i18n]').forEach(element => {
-      const message = browser.i18n.getMessage(element.dataset.i18n);
+      const message = extensionApi.i18n.getMessage(element.dataset.i18n);
       if (message) {
         element.textContent = message;
       }
@@ -35,7 +42,7 @@
   localizePage();
   toggle.disabled = true;
 
-  browser.storage.local.get({ [SETTING_KEY]: true }).then(settings => {
+  extensionApi.storage.local.get({ [SETTING_KEY]: true }).then(settings => {
     render(settings[SETTING_KEY] !== false);
     toggle.disabled = false;
   }, () => {
@@ -48,7 +55,7 @@
     render(enabled);
     toggle.disabled = true;
 
-    browser.storage.local.set({ [SETTING_KEY]: enabled }).then(() => {
+    extensionApi.storage.local.set({ [SETTING_KEY]: enabled }).then(() => {
       toggle.disabled = false;
     }, () => {
       render(!enabled);

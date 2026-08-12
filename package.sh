@@ -1,37 +1,63 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Firefox Add-on 打包腳本
+set -euo pipefail
 
-echo "📦 開始打包 Firefox Add-on..."
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BUILD_DIR="$ROOT_DIR/build"
+FIREFOX_DIR="$BUILD_DIR/firefox"
+CHROME_DIR="$BUILD_DIR/chrome"
 
-# 建立暫存目錄
-mkdir -p build
+COMMON_FILES=(
+  content.js
+  extension-api.js
+  popup.css
+  popup.html
+  popup.js
+  styles.css
+)
 
-# 複製必要檔案
-cp -r manifest.json content.js styles.css popup.html popup.css popup.js icons _locales build/
+copy_common_files() {
+  local target_dir="$1"
 
-# 進入 build 目錄
-cd build
+  for file in "${COMMON_FILES[@]}"; do
+    cp "$ROOT_DIR/$file" "$target_dir/"
+  done
 
-# 建立 zip 檔案
-zip -r ../fb-feed-filter.xpi * -x "*.DS_Store" "*.git*"
+  cp -R "$ROOT_DIR/_locales" "$target_dir/"
+}
 
-# 回到原目錄
-cd ..
+echo "Validating shared extension sources..."
+node "$ROOT_DIR/scripts/validate.mjs"
 
-# 清理暫存目錄
-rm -rf build
+rm -rf "$BUILD_DIR"
+mkdir -p "$FIREFOX_DIR/icons" "$CHROME_DIR/icons"
 
-echo "✅ 打包完成！檔案：fb-feed-filter.xpi"
-echo ""
-echo "📋 上架檢查清單："
-echo "  ✓ manifest.json 包含所有必要欄位"
-echo "  ✓ 多語言支援 (en, zh_TW)"
-echo "  ✓ 隱私權政策已建立"
-echo "  ✓ 程式碼已優化（減少 console.log）"
-echo ""
-echo "🚀 下一步："
-echo "  1. 前往 https://addons.mozilla.org/developers/"
-echo "  2. 登入開發者帳號"
-echo "  3. 上傳 fb-feed-filter.xpi"
-echo "  4. 填寫詳細說明和截圖"
+copy_common_files "$FIREFOX_DIR"
+copy_common_files "$CHROME_DIR"
+
+node "$ROOT_DIR/scripts/build-manifest.mjs" firefox "$FIREFOX_DIR/manifest.json"
+node "$ROOT_DIR/scripts/build-manifest.mjs" chrome "$CHROME_DIR/manifest.json"
+
+cp \
+  "$ROOT_DIR/icons/icon-48.png" \
+  "$ROOT_DIR/icons/icon-48.svg" \
+  "$ROOT_DIR/icons/icon-96.svg" \
+  "$FIREFOX_DIR/icons/"
+cp "$ROOT_DIR/icons/"*.png "$CHROME_DIR/icons/"
+
+rm -f "$ROOT_DIR/fb-feed-filter.xpi" "$ROOT_DIR/fb-feed-filter-chrome.zip"
+
+(
+  cd "$FIREFOX_DIR"
+  zip -qr "$ROOT_DIR/fb-feed-filter.xpi" . -x "*.DS_Store" "*.git*"
+)
+
+(
+  cd "$CHROME_DIR"
+  zip -qr "$ROOT_DIR/fb-feed-filter-chrome.zip" . -x "*.DS_Store" "*.git*"
+)
+
+echo "Build complete:"
+echo "  Firefox: $ROOT_DIR/fb-feed-filter.xpi"
+echo "  Chrome:  $ROOT_DIR/fb-feed-filter-chrome.zip"
+echo "  Chrome unpacked directory: $CHROME_DIR"

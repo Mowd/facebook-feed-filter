@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Facebook Feed Filter - Remove Recommendations",
   "short_name": "FB Feed Filter",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "description": "Remove sponsored posts, suggested content and Reels from Facebook feed. Keep only friends' posts.",
   "default_locale": "en",
 
@@ -23,7 +23,7 @@
   "content_scripts": [
     {
       "matches": ["*://*.facebook.com/*"],
-      "js": ["content.js"],
+      "js": ["extension-api.js", "content.js"],
       "css": ["styles.css"],
       "run_at": "document_start"
     }

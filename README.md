@@ -2,10 +2,16 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Firefox Add-on](https://img.shields.io/badge/Firefox-Add--on-orange.svg)](https://addons.mozilla.org/firefox/addon/facebook-feed-filter/)
-![Version](https://img.shields.io/badge/version-1.0.6-green.svg)
+![Version](https://img.shields.io/badge/version-1.1.0-green.svg)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/Mowd/facebook-feed-filter/graphs/commit-activity)
 
-A lightweight Firefox extension that removes sponsored posts, suggested content, and Reels from your Facebook feed, leaving only posts from friends and pages you follow.
+A lightweight Firefox and Chrome extension that removes sponsored posts, suggested content, and Reels from your Facebook feed, leaving only posts from friends and pages you follow.
+
+## ☕ Buy Me a Coffee
+
+If you find this project helpful, consider buying me a coffee!
+
+<a href="https://buymeacoffee.com/mowd" target="_blank"><img src="https://mowd.tw/buymeacoffee.png" alt="Buy Me A Coffee" width="300"></a>
 
 ## 🌟 Features
 
@@ -35,7 +41,21 @@ A lightweight Firefox extension that removes sponsored posts, suggested content,
 ### Option 1: Firefox Add-ons Store (Recommended)
 Install directly from Mozilla Add-ons: [Facebook Feed Filter](https://addons.mozilla.org/firefox/addon/facebook-feed-filter/)
 
-### Option 2: Manual Installation (Development)
+### Option 2: Chrome Manual Installation (Development)
+
+1. Clone this repository and build both browser packages:
+```bash
+git clone git@github.com:Mowd/facebook-feed-filter.git
+cd facebook-feed-filter
+./package.sh
+```
+
+2. Open Chrome and navigate to `chrome://extensions`
+3. Enable **Developer mode**
+4. Click **Load unpacked**
+5. Select the generated `build/chrome` directory
+
+### Option 3: Firefox Manual Installation (Development)
 
 1. Clone this repository:
 ```bash
@@ -49,12 +69,9 @@ cd facebook-feed-filter
 5. Select the `manifest.json` file from the cloned repository
 6. The extension is now active! Visit Facebook to see it in action
 
-### Option 3: Install from Release
+### Option 4: Install from Release
 
-1. Download the latest `.xpi` file from the [Releases](https://github.com/Mowd/facebook-feed-filter/releases) page
-2. Drag and drop the `.xpi` file into Firefox
-3. Click "Add" when prompted
-4. Done! The extension is now installed permanently
+Download the browser-specific package from the [Releases](https://github.com/Mowd/facebook-feed-filter/releases) page. Firefox uses `fb-feed-filter.xpi`; Chrome development builds use `fb-feed-filter-chrome.zip` and must be extracted before loading through `chrome://extensions`.
 
 ## 🚀 Usage
 
@@ -68,7 +85,7 @@ cd facebook-feed-filter
 
 ### How It Works
 
-The extension uses content scripts to:
+Both browser packages use the same content scripts to:
 1. Monitor DOM changes using MutationObserver
 2. Identify sponsored/suggested content through text matching
 3. Find the complete feed unit or section container and hide it
@@ -78,17 +95,28 @@ The extension uses content scripts to:
 
 ```
 facebook-feed-filter/
-├── manifest.json         # Extension configuration
-├── content.js           # Main content script
-├── styles.css          # Styling for placeholders
-├── popup.html          # Toolbar popup
-├── popup.css           # Popup styling
-├── popup.js            # Enable/disable setting
-├── icons/              # Extension icons
-├── _locales/           # Internationalization files
-├── PRIVACY_POLICY.md   # Privacy policy
-└── README.md          # This file
+├── manifest.json              # Canonical Firefox MV2 manifest and version source
+├── extension-api.js           # Shared Firefox/Chrome API adapter
+├── content.js                 # Shared filtering core
+├── styles.css                 # Shared filtering styles
+├── popup.html                 # Shared toolbar popup
+├── popup.css                  # Shared popup styles
+├── popup.js                   # Shared enable/disable setting
+├── icons/                     # SVG and generated PNG icons
+├── _locales/                  # Internationalization files
+├── scripts/build-manifest.mjs # Generates the Chrome MV3 manifest
+├── scripts/validate.mjs       # Validates manifests, locales, and API adapter
+├── package.sh                 # Builds Firefox and Chrome packages
+├── PRIVACY_POLICY.md          # Privacy policy
+└── README.md                  # This file
 ```
+
+### Cross-browser Architecture
+
+- `content.js` contains the only copy of the filtering logic.
+- `extension-api.js` normalizes Firefox Promise APIs and Chrome callback APIs.
+- `manifest.json` remains the canonical version source for releases.
+- Chrome-specific MV3 fields and PNG icon paths are generated during packaging.
 
 ### Performance Optimizations
 
@@ -122,9 +150,15 @@ cd facebook-feed-filter
 # Make your changes
 # Test in Firefox using temporary installation
 
-# Package for distribution
+# Validate and package both browsers
 ./package.sh
 ```
+
+The build creates:
+
+- `fb-feed-filter.xpi` for Firefox
+- `fb-feed-filter-chrome.zip` for Chrome distribution
+- `build/chrome` for Chrome's **Load unpacked** development workflow
 
 ### Code Style
 - Use clear, descriptive variable names
@@ -146,6 +180,12 @@ See [PRIVACY_POLICY.md](PRIVACY_POLICY.md) for full details.
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ## 🔄 Changelog
+
+### Version 1.1.0
+- Added a Chrome Manifest V3 build that shares the existing filtering core, popup, styles, settings, and locales with Firefox
+- Added a small cross-browser API adapter for storage and internationalization
+- Added generated Chrome manifests, PNG icons, validation, and dual-browser packaging
+- Fixed the toolbar popup icon in Chrome packages
 
 ### Version 1.0.6
 - Added a toolbar popup to temporarily pause or resume filtering
@@ -213,15 +253,9 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 - **Issues**: [GitHub Issues](https://github.com/Mowd/facebook-feed-filter/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/Mowd/facebook-feed-filter/discussions)
 
-### ☕ Buy Me a Coffee
-
-If you find this project helpful, consider buying me a coffee!
-
-<a href="https://buymeacoffee.com/mowd" target="_blank"><img src="https://mowd.tw/buymeacoffee.png" alt="Buy Me A Coffee" width="300"></a>
-
 ## 🚧 Roadmap
 
-- [ ] Chrome/Edge version
+- [x] Chrome/Edge-compatible Manifest V3 build
 - [ ] Customizable filtering rules
 - [ ] Whitelist/blacklist functionality
 - [ ] Statistics dashboard

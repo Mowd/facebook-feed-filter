@@ -16,10 +16,12 @@ Thumbs.db
 # Build output
 *.xpi
 *.zip
+build/
 
 # Editor directories and files
 .idea/
 .vscode/
+.claude/
 *.sublime-project
 *.sublime-workspace
 
